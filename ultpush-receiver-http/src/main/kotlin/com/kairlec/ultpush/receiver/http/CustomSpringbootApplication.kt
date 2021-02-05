@@ -1,0 +1,10 @@
+package com.kairlec.ultpush.receiver.http
+
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.scheduling.annotation.EnableScheduling
+import org.springframework.transaction.annotation.EnableTransactionManagement
+
+@SpringBootApplication
+@EnableScheduling
+@EnableTransactionManagement
+class CustomSpringbootApplication
