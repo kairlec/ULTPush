@@ -3,7 +3,6 @@ plugins {
     kotlin("plugin.spring") version com.kairlec.ultpush.gradle.Versions.kotlin apply true
     id("org.springframework.boot") version com.kairlec.ultpush.gradle.Versions.springboot
     id("io.spring.dependency-management") version com.kairlec.ultpush.gradle.Versions.springDependencyManagement
-
 }
 
 group = "com.kairlec"
@@ -37,4 +36,12 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
+}
+
+tasks.bootJar {
+    enabled = false
+}
+
+tasks.jar {
+    enabled = true
 }

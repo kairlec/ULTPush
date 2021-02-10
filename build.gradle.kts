@@ -37,8 +37,13 @@ subprojects {
     tasks.withType<Test> {
         useJUnitPlatform()
     }
+
     dependencies {
         gradleApi()
+        implementation("com.fasterxml.jackson.core:jackson-databind:${com.kairlec.ultpush.gradle.Versions.jackson}")
+        implementation("com.fasterxml.jackson.core:jackson-core:${com.kairlec.ultpush.gradle.Versions.jackson}")
+        implementation("com.fasterxml.jackson.core:jackson-annotations:${com.kairlec.ultpush.gradle.Versions.jackson}")
+        implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${com.kairlec.ultpush.gradle.Versions.jackson}")
     }
 
     tasks.javadoc {
@@ -46,6 +51,7 @@ subprojects {
             (options as StandardJavadocDocletOptions).addBooleanOption("html5", true)
         }
     }
+
     repositories {
         mavenLocal()
         maven("https://maven.aliyun.com/repository/public/")
@@ -67,3 +73,8 @@ repositories {
     mavenCentral()
     jcenter()
 }
+
+tasks.forEach {
+    it.enabled = false
+}
+

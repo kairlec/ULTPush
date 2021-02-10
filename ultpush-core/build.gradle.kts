@@ -7,9 +7,12 @@ plugins {
 }
 
 dependencies {
+    api("org.slf4j:slf4j-api:${Versions.slf4j}")
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
     api("org.jetbrains.kotlinx", "kotlinx-coroutines-core", Versions.kotlinCoroutines)
+    implementation("com.fasterxml.jackson.dataformat", "jackson-dataformat-yaml", Versions.jackson)
+    testImplementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
 }
 
 

@@ -5,7 +5,7 @@ import com.kairlec.ultpush.core.handler.MessageHandler
 /**
  * 接收来的消息
  */
-interface ReceiverMsg{
+interface ReceiverMsg {
     /**
      * 允许超类处理
      * 比如若有[MessageHandler]所监听的类型为[ReceiverMsg]或其他当前类的父类,则也允许处理
@@ -13,4 +13,13 @@ interface ReceiverMsg{
      */
     val allowSuperClassHandle: Boolean
 
+    /**
+     * 消息内容
+     */
+    val content: Any
+
+    /**
+     * 把消息转的String表示方法
+     */
+    val textContent: String
 }

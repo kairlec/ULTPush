@@ -4,13 +4,17 @@ import com.kairlec.ultpush.core.handler.MessageHandler
 import com.kairlec.ultpush.core.pusher.Pusher
 import com.kairlec.ultpush.core.receiver.Receiver
 import com.kairlec.ultpush.core.receiver.ReceiverMsg
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 
 class Application private constructor() {
     companion object {
+        val logger = LoggerFactory.getLogger(Application::class.java)
         lateinit var args: Array<String>
             private set
         private val receiverMap = ConcurrentHashMap<String, Receiver>()
@@ -125,41 +129,10 @@ class Application private constructor() {
         return handlerContext.values.filter { it::class == R::class }
     }
     //endregion
-}
 
 
-class TestReceiver : Receiver() {
-    override fun authenticate(body: ReceiverMsg): AuthenticateStatus<ReceiverMsg> {
-        TODO("Not yet implemented")
+    init {
+        GlobalScope.launch {
+        }
     }
-
-    override fun run() {
-        TODO("Not yet implemented")
-    }
-
-}
-
-class TestReceiver2 : Receiver() {
-    override val name: String
-        get() = "test receiver2"
-
-    override fun run() {
-        TODO("Not yet implemented")
-    }
-
-    override fun authenticate(body: ReceiverMsg): AuthenticateStatus<ReceiverMsg> {
-        TODO("Not yet implemented")
-    }
-
-}
-
-suspend fun main(args: Array<String>) {
-    val application = Application.start(args)
-    val t = TestReceiver()
-    application.registerReceiver(t)
-    application.registerReceiver(TestReceiver2())
-    val u = application.getReceiver(t.name)!!
-    println(u)
-    println(u::class)
-    println(application.getReceiver<TestReceiver2>())
 }

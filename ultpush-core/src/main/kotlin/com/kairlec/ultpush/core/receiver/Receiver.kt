@@ -2,24 +2,22 @@ package com.kairlec.ultpush.core.receiver
 
 import com.kairlec.ultpush.core.Application
 import com.kairlec.ultpush.core.Authenticate
-import com.kairlec.ultpush.core.Component
+import com.kairlec.ultpush.core.Filter
 import com.kairlec.ultpush.core.handler.MessageHandler
 import java.lang.IllegalArgumentException
 
 /**
  * 定义push的消息接收器
  */
-abstract class Receiver : Component, Authenticate<ReceiverMsg> {
+abstract class Receiver : Authenticate<ReceiverMsg>, Filter<ReceiverMsg> {
     /**
      * 接收器的名称
      */
     open val name: String = "[Receiver]unnamed@${hashCode()}"
 
-    override fun init() {}
-    override fun load() {}
-    override fun destroy() {}
+    override fun allow(content: ReceiverMsg) = true
 
-    suspend fun receive(msg: ReceiverMsg) {
+    fun receive(msg: ReceiverMsg) {
         Application.handlerContext.values.forEach {
             it.handle(msg)
         }

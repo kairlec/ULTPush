@@ -1,0 +1,5 @@
+{
+  "receiver": [
+    "com.kairlec.ultpush.receiver.http.HttpReceiver"
+  ]
+}

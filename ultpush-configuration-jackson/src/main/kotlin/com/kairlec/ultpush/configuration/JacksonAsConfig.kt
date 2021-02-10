@@ -1,0 +1,115 @@
+package com.kairlec.ultpush.configuration
+
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.databind.node.JsonNodeType
+import com.kairlec.ultpush.bind.ULTImpl
+import com.kairlec.ultpush.configuration.JacksonConfiguration.Companion.mapper
+
+
+class JacksonAsConfig(internal val node: JsonNode) : Config {
+    override fun getChild(name: String): Config? {
+        return node[name]?.let { JacksonAsConfig(it) }
+    }
+
+    override fun getChild(index: Int): Config? {
+        return node[index]?.let { JacksonAsConfig(it) }
+    }
+
+    override fun get(index: Int, event: Config.() -> Unit): Config? {
+        return get(index)?.apply(event)
+    }
+
+    override fun get(name: String, event: Config.() -> Unit): Config? {
+        return get(name)?.apply(event)
+    }
+
+    override val type: ConfigType
+        get() = when (node.nodeType) {
+            JsonNodeType.ARRAY -> ConfigType.ARRAY
+            JsonNodeType.BOOLEAN -> ConfigType.BOOLEAN
+            JsonNodeType.NULL -> ConfigType.NULL
+            JsonNodeType.NUMBER -> {
+                if (node.isFloat) {
+                    ConfigType.FLOAT
+                } else {
+                    ConfigType.INTEGER
+                }
+            }
+            JsonNodeType.OBJECT -> ConfigType.OBJECT
+            JsonNodeType.STRING -> ConfigType.STRING
+            JsonNodeType.BINARY -> ConfigType.BINARY
+            JsonNodeType.POJO,
+            JsonNodeType.MISSING,
+            -> ConfigType.UNKNOWN
+            else -> ConfigType.UNKNOWN
+        }
+    override val data: Any?
+        get() = when (node.nodeType) {
+            JsonNodeType.ARRAY -> arrayValue
+            JsonNodeType.BOOLEAN -> booleanValue
+            JsonNodeType.NULL -> null
+            JsonNodeType.NUMBER -> {
+                if (node.isFloat) {
+                    floatValue
+                } else {
+                    integerValue
+                }
+            }
+            JsonNodeType.OBJECT -> objectValue
+            JsonNodeType.STRING -> stringValue
+            JsonNodeType.BINARY -> binaryValue
+            JsonNodeType.POJO,
+            JsonNodeType.MISSING,
+            -> null
+            else -> null
+        }
+
+    override fun <T> getData(clazz: Class<T>): T {
+        return mapper.convertValue(node, clazz)
+    }
+
+    override val arrayValue: Iterable<Config>?
+        get() = if (node.isArray) {
+            (node as ArrayNode).map { JacksonAsConfig(it) }
+        } else {
+            null
+        }
+
+    override val objectValue: Config?
+        get() = if (node.isObject) {
+            JacksonAsConfig(node)
+        } else {
+            null
+        }
+    override val stringValue: String?
+        get() = if (node.isTextual) {
+            node.textValue()
+        } else {
+            null
+        }
+    override val booleanValue: Boolean?
+        get() = if (node.isBoolean) {
+            node.booleanValue()
+        } else {
+            null
+        }
+    override val integerValue: Int?
+        get() = if (node.isIntegralNumber) {
+            node.intValue()
+        } else {
+            null
+        }
+    override val floatValue: Float?
+        get() = if (node.isFloatingPointNumber) {
+            node.floatValue()
+        } else {
+            null
+        }
+    override val binaryValue: ByteArray?
+        get() = if (node.isBinary) {
+            node.binaryValue()
+        } else {
+            null
+        }
+}

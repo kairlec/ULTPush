@@ -6,7 +6,7 @@ object Versions {
 
 
     const val slf4j = "1.7.30"
-    const val jackson = "2.12.0"
+    const val jackson = "2.12.1"
     const val springboot = "2.4.1"
     const val springDependencyManagement = "1.0.10.RELEASE"
     const val reflections = "0.9.11"
@@ -17,4 +17,9 @@ object Versions {
     const val sqliteDialect = "0.1.0"
     const val springDataRelational = "2.1.2"
 
+    const val javalin = "3.13.3"
+
+    const val guice = "5.0.0-BETA-1"
+
+    const val servlet = "4.0.1"
 }
