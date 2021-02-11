@@ -2,10 +2,12 @@ package com.kairlec.ultpush.component
 
 import com.kairlec.ultpush.bind.ULTInject
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.lang.RuntimeException
+import java.util.concurrent.TimeoutException
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.full.callSuspend
@@ -24,6 +26,8 @@ fun run(
     val finishedClasses = HashSet<KClass<out Any>>()
     val waitNames = HashSet<String>()
     val waitClasses = HashSet<KClass<out Any>>()
+    val runningNames = HashSet<String>()
+    val runningClass = HashSet<KClass<out Any>>()
     lifecycles.forEach {
         logger.debug("${lifecycleEnum.stage} class:${it.clazz.qualifiedName} [name:${it.name}]")
         try {
@@ -41,6 +45,9 @@ fun run(
                         waitClasses,
                         failedNames,
                         failedClasses,
+                        runningNames,
+                        runningClass,
+                        -1,
                         false
                     )
                 }
@@ -57,6 +64,9 @@ fun run(
                         waitClasses,
                         failedNames,
                         failedClasses,
+                        runningNames,
+                        runningClass,
+                        -1,
                         false
                     )
                 }
@@ -73,6 +83,9 @@ fun run(
                         waitClasses,
                         failedNames,
                         failedClasses,
+                        runningNames,
+                        runningClass,
+                        it.runAnn?.asyncTimeout ?: 30_000,
                         it.runAnn?.async ?: true
                     )
                 }
@@ -89,6 +102,9 @@ fun run(
                         waitClasses,
                         failedNames,
                         failedClasses,
+                        runningNames,
+                        runningClass,
+                        -1,
                         false
                     )
                 }
@@ -114,12 +130,11 @@ fun runSignal(
     waitClass: MutableSet<KClass<out Any>>,
     failedNames: MutableSet<String>,
     failedClass: MutableSet<KClass<out Any>>,
+    runningNames: MutableSet<String>,
+    runningClass: MutableSet<KClass<out Any>>,
+    asyncTimeout: Int,
     async: Boolean,
 ) {
-    if (lifecycle.instance == null) {
-        val instance = ULTInject.getInstance(lifecycle.clazz.java)
-        lifecycle.instance = instance
-    }
     // 已完成的不用再次执行(多个依赖一个)
     if (finishedNames.contains(lifecycle.name) || finishedClasses.contains(lifecycle.clazz)) {
         return
@@ -127,6 +142,29 @@ fun runSignal(
     // 前面已经有等待了,无法解决依赖循环的问题
     if (waitNames.contains(lifecycle.name) || waitClass.contains(lifecycle.clazz)) {
         throw RuntimeException("Dependency contains closed loop on '${lifecycle.clazz.qualifiedName}' [name:${lifecycle.name}]")
+    }
+    // 异步正在执行,直接等待执行完毕就行
+    runBlocking {
+        if (asyncTimeout <= 0) {
+            while (runningNames.contains(lifecycle.name) || runningClass.contains(lifecycle.clazz)) {
+                delay(100)
+            }
+        } else {
+            var current = 0
+            while (runningNames.contains(lifecycle.name) || runningClass.contains(lifecycle.clazz)) {
+                delay(100)
+                current += 100
+                if (current > asyncTimeout) {
+                    throw TimeoutException("async time out for $asyncTimeout")
+                }
+            }
+        }
+    }
+    runningClass.add(lifecycle.clazz)
+    runningNames.add(lifecycle.name)
+    if (lifecycle.instance == null) {
+        val instance = ULTInject.getInstance(lifecycle.clazz.java)
+        lifecycle.instance = instance
     }
     currentFunction?.run {
         waitNames.add(lifecycle.name)
@@ -148,6 +186,9 @@ fun runSignal(
                     waitClass,
                     failedNames,
                     failedClass,
+                    runningNames,
+                    runningClass,
+                    asyncTimeout,
                     async
                 )
             }
@@ -176,10 +217,14 @@ fun runSignal(
             if (isSuspend) {
                 GlobalScope.launch {
                     callSuspend(lifecycle.instance)
+                    runningClass.remove(lifecycle.clazz)
+                    runningNames.remove(lifecycle.name)
                 }
             } else {
                 GlobalScope.launch {
                     call(lifecycle.instance)
+                    runningClass.remove(lifecycle.clazz)
+                    runningNames.remove(lifecycle.name)
                 }
             }
         } else {
@@ -187,8 +232,12 @@ fun runSignal(
                 runBlocking {
                     callSuspend(lifecycle.instance)
                 }
+                runningClass.remove(lifecycle.clazz)
+                runningNames.remove(lifecycle.name)
             } else {
                 call(lifecycle.instance)
+                runningClass.remove(lifecycle.clazz)
+                runningNames.remove(lifecycle.name)
             }
         }
     }

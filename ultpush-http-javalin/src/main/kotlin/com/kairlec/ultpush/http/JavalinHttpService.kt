@@ -36,7 +36,7 @@ class JavalinHttpService @Inject constructor(
         }
     }
 
-    @ULTRun(async = false)
+    @ULTRun(async = false, asyncTimeout = 100)
     fun run() {
         var port = 80
         var host = "0.0.0.0"
@@ -132,14 +132,11 @@ class JavalinHttpService @Inject constructor(
     }
 }
 
+interface TRR
+
 fun main() {
     val javalin = ULTInject.getInstance(JavalinHttpService::class.java)
     javalin.get("/") {
         json("OK")
-    }
-    runBlocking {
-        while (true) {
-            delay(99999)
-        }
     }
 }

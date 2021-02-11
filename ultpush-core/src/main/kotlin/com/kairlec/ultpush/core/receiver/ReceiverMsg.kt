@@ -1,11 +1,13 @@
 package com.kairlec.ultpush.core.receiver
 
+import com.kairlec.ultpush.core.Filterable
+import com.kairlec.ultpush.core.MessageInfo
 import com.kairlec.ultpush.core.handler.MessageHandler
 
 /**
  * 接收来的消息
  */
-interface ReceiverMsg {
+interface ReceiverMsg : MessageInfo, Filterable {
     /**
      * 允许超类处理
      * 比如若有[MessageHandler]所监听的类型为[ReceiverMsg]或其他当前类的父类,则也允许处理
@@ -14,7 +16,7 @@ interface ReceiverMsg {
     val allowSuperClassHandle: Boolean
 
     /**
-     * 消息内容
+     * 消息内容,若消息内容为空,则使用[Unit]
      */
     val content: Any
 

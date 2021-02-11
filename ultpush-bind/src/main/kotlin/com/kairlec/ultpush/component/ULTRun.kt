@@ -10,7 +10,8 @@ import kotlin.reflect.full.valueParameters
 annotation class ULTRun(
     val dependNames: Array<String> = [],
     val dependClasses: Array<KClass<*>> = [],
-    val async: Boolean = true
+    val async: Boolean = true,
+    val asyncTimeout: Int = 30
 ) {
     companion object {
         fun register(lifecycle: Lifecycle, function: KFunction<*>) {

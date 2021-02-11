@@ -1,41 +1,29 @@
 package com.kairlec.ultpush.core.receiver
 
+import com.google.inject.TypeLiteral
+import com.kairlec.ultpush.bind.ULTInterface
+import com.kairlec.ultpush.component.ULTInterfaceType
 import com.kairlec.ultpush.core.Application
 import com.kairlec.ultpush.core.Authenticate
 import com.kairlec.ultpush.core.Filter
 import com.kairlec.ultpush.core.handler.MessageHandler
+import com.kairlec.ultpush.core.pusher.Pusher
 import java.lang.IllegalArgumentException
 
 /**
  * 定义push的消息接收器
  */
-abstract class Receiver : Authenticate<ReceiverMsg>, Filter<ReceiverMsg> {
+@ULTInterface
+abstract class Receiver<T : ReceiverMsg> : Authenticate<T>, Filter<T> {
     /**
      * 接收器的名称
      */
     open val name: String = "[Receiver]unnamed@${hashCode()}"
 
-    override fun allow(content: ReceiverMsg) = true
+    @ULTInterfaceType
+    val type = object : TypeLiteral<Receiver<T>>() {}
 
-    fun receive(msg: ReceiverMsg) {
-        Application.handlerContext.values.forEach {
-            it.handle(msg)
-        }
-    }
-
-    fun receive(msg: ReceiverMsg, vararg handlers: MessageHandler) {
-        handlers.forEach {
-            it.handle(msg)
-        }
-    }
-
-    suspend fun receive(msg: ReceiverMsg, vararg handlerNames: String) {
-        val application = Application.start()
-        handlerNames.forEach {
-            application.getMessageHandler(it)?.handle(msg)
-                ?: throw IllegalArgumentException("wrong handler name '$it' because it not exist in message handler context")
-        }
-    }
+    override fun allow(content: T) = true
 
     override fun toString(): String {
         return name

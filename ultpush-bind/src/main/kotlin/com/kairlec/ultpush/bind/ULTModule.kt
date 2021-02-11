@@ -5,8 +5,10 @@ package com.kairlec.ultpush.bind
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.inject.AbstractModule
 import com.google.inject.Singleton
+import com.google.inject.TypeLiteral
 import com.google.inject.name.Names
 import com.kairlec.ultpush.component.ULTComponentLifecycle
+import com.kairlec.ultpush.component.ULTInterfaceType
 import org.reflections.Reflections
 import org.reflections.scanners.SubTypesScanner
 import org.reflections.scanners.TypeAnnotationsScanner
@@ -19,6 +21,11 @@ import java.util.jar.JarFile
 
 import java.util.*
 import java.util.jar.JarEntry
+import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.isSubtypeOf
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.javaType
 
 class ULTModule : AbstractModule() {
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -49,16 +56,37 @@ class ULTModule : AbstractModule() {
             impl.kotlin.objectInstance?.let {
                 requestStaticInjection(it::class.java)
             }
+            var tpl: TypeLiteral<Any>? = null
+            intf.kotlin.memberProperties.forEach {
+                it.findAnnotation<ULTInterfaceType>()?.run {
+                    val type = it.get(impl) ?: run {
+                        logger.error("error to bind TypeLiteral because of null")
+                        return
+                    }
+                    if (type is TypeLiteral<*>) {
+                        tpl = type as TypeLiteral<Any>
+                    }
+                }
+            }
             val msg = buildString {
-                bind(intf).annotatedWith(Names.named(name)).to(impl)
-                append("${pluginName.currentLocation}Bind '${intf.name}' to '${impl.name}'[with name '${name}']")
+                if (tpl != null) {
+                    bind(tpl).annotatedWith(Names.named(name)).to(impl)
+                    append("${pluginName.currentLocation}Bind '${tpl!!.rawType.name}' to '${impl.name}'[with name '${name}']")
+                } else {
+                    bind(intf).annotatedWith(Names.named(name)).to(impl)
+                    append("${pluginName.currentLocation}Bind '${intf.name}' to '${impl.name}'[with name '${name}']")
+                }
                 if (implAnn.default) {
                     if (interfaceMap.containsKey(intf.name)) {
                         append("[default failed because has bound with '${interfaceMap[intf.name]}']")
                         logger.warn("${pluginName.currentLocation}Bind '${intf.name}' to '${impl.name}' default failed because has bound with '${interfaceMap[intf.name]}'")
                     } else {
                         interfaceMap[intf.name] = impl.name
-                        bind(intf).to(impl)
+                        if (tpl != null) {
+                            bind(tpl).to(impl)
+                        } else {
+                            bind(intf).to(impl)
+                        }
                         append("[default]")
                     }
                 }

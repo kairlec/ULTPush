@@ -1,17 +1,19 @@
 rootProject.name = "ultpush"
+//push核心
 include("ultpush-core")
+//push的用户功能支持
 include("ultpush-user")
+//push的http服务支持
 include("ultpush-http")
-include("ultpush-receiver-http")
-include("ultpush-receiver-wework")
-include("ultpush-receiver-webhook")
-include("ultpush-handler-wework")
-include("ultpush-handler-webhook")
-include("ultpush-pusher-webhook")
+//push的企业微信支持
+include("ultpush-wework")
+//推送消息的win客户端支持
 include("ultpush-pusher-win")
-include("ultpush-pusher-wework")
-include("ultpush-pusher-http")
+//push的基于Javalin的http服务实现
 include("ultpush-http-javalin")
+//push的配置文件支持
 include("ultpush-configuration")
+//push的基于Jackson的配置文件实现
 include("ultpush-configuration-jackson")
+//push的依赖架构绑定实现(基于Guice)
 include("ultpush-bind")
