@@ -1,5 +1,8 @@
 package com.kairlec.ultpush.core
 
+import kotlin.reflect.KProperty1
+import kotlin.reflect.full.declaredMemberProperties
+
 interface Filterable {
     val keyword: Set<String>
 
@@ -21,6 +24,20 @@ class FilterLevel private constructor(
 
         fun custom(value: Int): FilterLevel {
             return FilterLevel(value)
+        }
+
+        fun parse(value: Int): FilterLevel {
+            var target: FilterLevel? = null
+            this::class.declaredMemberProperties.any {
+                val level = (it as KProperty1<Companion, FilterLevel>).get(this)
+                if (level.value == value) {
+                    target = level
+                    true
+                } else {
+                    false
+                }
+            }
+            return target ?: custom(value)
         }
     }
 }

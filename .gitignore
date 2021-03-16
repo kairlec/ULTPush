@@ -49,3 +49,8 @@ gradle-app.setting
 *.iml
 out
 gen
+
+/data/
+/config/
+/debug/
+/plugins

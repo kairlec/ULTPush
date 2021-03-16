@@ -1,4 +1,4 @@
 {
-  "package": "com.kairlec.ultpush",
+  "package": "com.kairlec.ultpush.configuration",
   "name": "ULTPush-Configuration-Jackson-Module"
 }

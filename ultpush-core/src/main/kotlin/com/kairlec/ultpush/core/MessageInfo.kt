@@ -14,6 +14,6 @@ interface MessageInfo {
     /**
      * 消息创建时间
      */
-    val createTime: Int
+    val createTime: Long
 
 }

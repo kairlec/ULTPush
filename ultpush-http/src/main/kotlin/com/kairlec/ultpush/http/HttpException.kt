@@ -20,3 +20,5 @@ sealed class HttpException : Exception {
 
 class MethodNotSupportException(val method: String, override val message: String = "Method $method not support") :
     HttpException(message)
+
+class HttpResponseFinishedException(val statusCode: Int, override val message: String? = null) : Exception(message)

@@ -3,6 +3,7 @@ package com.kairlec.ultpush.http
 import com.kairlec.ultpush.http.HttpCommon.HTML_CT
 import com.kairlec.ultpush.http.HttpCommon.LOCATION_HD
 import com.kairlec.ultpush.http.HttpCommon.UA_HD
+import java.io.InputStream
 import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.util.*
@@ -13,6 +14,7 @@ import javax.servlet.http.HttpServletResponse.SC_MOVED_TEMPORARILY
 import javax.servlet.http.HttpSession
 
 interface HttpContext {
+    var scope: HttpScope
     val request: HttpServletRequest
     val response: HttpServletResponse
 
@@ -29,6 +31,8 @@ interface HttpContext {
             response.contentType = value
         }
     val headerNames: Enumeration<String> get() = request.headerNames
+    val formParamMap: Map<String, List<String>>
+    val queryStringMap: Map<String, List<String>>
     val headersMap: Map<String, Enumeration<String>>
     val headerMap: Map<String, String>
     val host: String? get() = request.remoteHost
@@ -39,7 +43,6 @@ interface HttpContext {
     val queryString: String? get() = request.queryString
     val scheme: String get() = request.scheme
     val session: HttpSession get() = request.session
-    val queryStringMap: Map<String, List<String>>
     val url: String get() = request.requestURL.toString()
     val fullUrl: String get() = queryString?.let { "$url?$it" } ?: url
     val contextPath: String get() = request.contextPath
@@ -51,14 +54,27 @@ interface HttpContext {
     fun getHeader(key: String): String? = request.getHeader(key)
     fun getHeaders(key: String): Enumeration<String> = request.getHeaders(key)
     fun getQueryParams(key: String): List<String> = queryStringMap[key] ?: emptyList()
-    fun getQueryParam(key: String, default: String?) = getQueryParams(key).firstOrNull() ?: default
+    fun getQueryParam(key: String, default: String) = getQueryParam(key) ?: default
+    fun getQueryParam(key: String) = getQueryParams(key).firstOrNull()
+    fun getFormParam(key: String) = getFormParams(key).firstOrNull()
+    fun getFormParam(key: String, default: String) = getFormParam(key) ?: default
+    fun getFormParams(key: String) = formParamMap[key] ?: emptyList()
+    fun getRequestParam(key: String): String? = getFormParam(key) ?: getQueryParam(key)
+    fun getRequestParam(key: String, default: String): String = getRequestParam(key) ?: default
     fun getCookie(name: String): String? = cookieMap[name]
     fun getRawCookie(name: String): Cookie? = request.cookies?.find { name == it.name }
+    fun getMultiPartFile(filename: String): PartFile? = getMultiPartFiles(filename).firstOrNull()
+    fun getMultiPartFiles(filename: String): List<PartFile>
 
+    fun setRequestAttribute(name: String, value: Any) = request.setAttribute(name, value)
+    fun getRequestAttribute(name: String): Any? = request.getAttribute(name)
+    fun setSessionAttribute(name: String, value: Any) = session.setAttribute(name, value)
+    fun getSessionAttribute(name: String): Any? = session.getAttribute(name)
 
     //////////////////////////////////////
     // Response properties and function //
     //////////////////////////////////////
+    val outputStream get() = response.outputStream
     var responseCharset: Charset
         get() = Charset.forName(request.characterEncoding) ?: Charset.defaultCharset()
         set(value) {
@@ -68,6 +84,9 @@ interface HttpContext {
     fun redirect(location: String, statusCode: Int = SC_MOVED_TEMPORARILY) {
         response.setHeader(LOCATION_HD, location)
         response.status = statusCode
+        if (scope == HttpScope.BEFORE) {
+            throw HttpResponseFinishedException(statusCode)
+        }
     }
 
     var statusCode: Int
@@ -96,8 +115,18 @@ interface HttpContext {
     fun html(html: String) {
         response.contentType = HTML_CT
         response.outputStream.use { it.print(html) }
+        response.outputStream.flush()
     }
 
     fun json(obj: Any)
+
+    fun out(inputStream: InputStream) {
+        inputStream.transferTo(response.outputStream)
+    }
+
+    fun out(byteArray: ByteArray) {
+        response.outputStream.write(byteArray)
+    }
+
 }
 

@@ -4,14 +4,15 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.ObjectReader
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.kairlec.ultpush.bind.ULTImpl
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 @ULTImpl("JacksonConfiguration")
 class JacksonConfiguration : Configuration {
     companion object {
         val mapper = ObjectMapper(YAMLFactory())
+        private val configMap = ConcurrentHashMap<String, Config>()
     }
 
     private fun <T> loadYaml(
@@ -59,12 +60,28 @@ class JacksonConfiguration : Configuration {
         return obj?.apply(event)
     }
 
-    override fun loadYaml(name: String, base: Config?, event: Config.() -> Unit): Config? {
+    override fun loadYaml(
+        name: String,
+        subName: String?,
+        cached: Boolean,
+        base: Config?,
+        event: Config.() -> Unit
+    ): Config? {
         if (base !is JacksonAsConfig?) {
             throw TypeCastException("Cannot cast non-JacksonAsConfig to JacksonAsConfig")
         }
-        val obj = loadYaml(name, base?.node)?.let { JacksonAsConfig(it) }
-        return obj?.apply(event)
+        val config = if (cached) {
+            configMap[name] ?: let {
+                loadYaml(name, base?.node)?.let { JacksonAsConfig(it) }?.apply {
+                    configMap[name] = this
+                }
+            }
+        } else {
+            loadYaml(name, base?.node)?.let { JacksonAsConfig(it) }?.apply {
+                configMap[name] = this
+            }
+        }
+        return subName?.let { config?.get(it)?.apply(event) } ?: config?.apply(event)
     }
 
 

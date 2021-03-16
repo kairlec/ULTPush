@@ -7,8 +7,8 @@ interface Config {
     operator fun get(name: String) = getChild(name)
     operator fun get(index: Int) = getChild(index)
 
-    fun get(name: String, event: Config.() -> Unit): Config?
-    fun get(index: Int, event: Config.() -> Unit): Config?
+    fun <T> get(name: String, event: Config.() -> T): T?
+    fun <T> get(index: Int, event: Config.() -> T): T?
 
     val type: ConfigType
     val data: Any?
@@ -36,4 +36,7 @@ interface Config {
     fun <T> ifFloat(event: Float.() -> T) = floatValue?.let(event)
 
     fun <T> ifBinary(event: ByteArray.() -> T) = binaryValue?.let(event)
+
+    fun asString(): String
+    fun <T> asString(event: String.() -> T)
 }

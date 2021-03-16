@@ -7,15 +7,15 @@ import com.google.inject.TypeLiteral
 val TypeLiteral<*>.wrapper get() = TypeLiteralWrapper(this)
 
 @Suppress("UNCHECKED_CAST")
-fun <T> Injector.getGenericInstance(key: Key<T>, hard: Boolean): T {
-    return bindings.keys.single { it.typeLiteral.wrapper.canCastTo(key.typeLiteral.wrapper, hard) }
+fun <T> Injector.getGenericInstance(key: Key<T>, assignable: Boolean): T {
+    return bindings.keys.single { it.typeLiteral.wrapper.canCastTo(key.typeLiteral.wrapper, assignable) }
         ?.let { getInstance(it) as T }
         ?: throw TypeCastException(key.typeLiteral.type.typeName)
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <T> Injector.getGenericInstances(key: Key<T>, hard: Boolean): List<T> {
-    return bindings.keys.filter { it.typeLiteral.wrapper.canCastTo(key.typeLiteral.wrapper, hard) }
+fun <T> Injector.getGenericInstances(key: Key<T>, assignable: Boolean): List<T> {
+    return bindings.keys.filter { it.typeLiteral.wrapper.canCastTo(key.typeLiteral.wrapper, assignable) }
         .map { getInstance(it) as T }
 }
 
@@ -27,17 +27,16 @@ class TypeLiteralWrapper private constructor(val rawStr: String) {
     val allowSub: Boolean
     val genericClass: List<TypeLiteralWrapper>
 
-    fun canCastTo(other: TypeLiteralWrapper, hard: Boolean): Boolean {
+    fun canCastTo(other: TypeLiteralWrapper, assignable: Boolean): Boolean {
         if (genericClass.size != other.genericClass.size) {
             return false
         }
         for (i in genericClass.indices) {
-            if (!genericClass[i].canCastTo(other.genericClass[i], hard)) {
-                println("${genericClass[i].rawStr} != ${other.genericClass[i].rawStr}")
+            if (!genericClass[i].canCastTo(other.genericClass[i], assignable)) {
                 return false
             }
         }
-        return clazz == other.clazz || (other.clazz.isAssignableFrom(clazz) && (hard || other.allowSub))
+        return clazz == other.clazz || (other.clazz.isAssignableFrom(clazz) && (assignable || other.allowSub))
     }
 
     init {

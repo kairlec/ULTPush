@@ -3,7 +3,6 @@ package com.kairlec.ultpush.configuration
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.JsonNodeType
-import com.kairlec.ultpush.bind.ULTImpl
 import com.kairlec.ultpush.configuration.JacksonConfiguration.Companion.mapper
 
 
@@ -16,12 +15,12 @@ class JacksonAsConfig(internal val node: JsonNode) : Config {
         return node[index]?.let { JacksonAsConfig(it) }
     }
 
-    override fun get(index: Int, event: Config.() -> Unit): Config? {
-        return get(index)?.apply(event)
+    override fun <T> get(index: Int, event: Config.() -> T): T? {
+        return get(index)?.let(event)
     }
 
-    override fun get(name: String, event: Config.() -> Unit): Config? {
-        return get(name)?.apply(event)
+    override fun <T> get(name: String, event: Config.() -> T): T? {
+        return get(name)?.let(event)
     }
 
     override val type: ConfigType
@@ -112,4 +111,12 @@ class JacksonAsConfig(internal val node: JsonNode) : Config {
         } else {
             null
         }
+
+    override fun asString(): String {
+        return node.asText() ?: node.toString()
+    }
+
+    override fun <T> asString(event: String.() -> T) {
+        event(asString())
+    }
 }

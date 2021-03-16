@@ -7,6 +7,7 @@ plugins {
 dependencies {
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
+    api(project(":ultpush-bind"))
     api("org.jetbrains.kotlinx", "kotlinx-coroutines-core", Versions.kotlinCoroutines)
 }
 

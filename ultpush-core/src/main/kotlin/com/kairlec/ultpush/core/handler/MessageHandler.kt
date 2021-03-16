@@ -2,19 +2,18 @@ package com.kairlec.ultpush.core.handler
 
 import com.google.inject.TypeLiteral
 import com.kairlec.ultpush.bind.ULTInterface
-import com.kairlec.ultpush.component.ULTInterfaceType
 import com.kairlec.ultpush.core.Filter
+import com.kairlec.ultpush.bind.TypeLiteralAble
+import com.kairlec.ultpush.core.pusher.Pusher
 import com.kairlec.ultpush.core.pusher.PusherMsg
 import com.kairlec.ultpush.core.receiver.ReceiverMsg
 
 /**
  * 消息处理器
  */
-@ULTInterface
+@ULTInterface(20)
 abstract class MessageHandler<T : ReceiverMsg, R : PusherMsg> : Filter<T> {
-
-    @ULTInterfaceType
-    val type = object : TypeLiteral<MessageHandler<T, R>>() {}
+    abstract fun getPusherTypeLiteral(): TypeLiteral<out Pusher<out PusherMsg>>
 
     open val name = "[MessageHandler]unnamed@${hashCode()}"
 
@@ -25,4 +24,6 @@ abstract class MessageHandler<T : ReceiverMsg, R : PusherMsg> : Filter<T> {
     override fun toString(): String {
         return name
     }
+
+
 }

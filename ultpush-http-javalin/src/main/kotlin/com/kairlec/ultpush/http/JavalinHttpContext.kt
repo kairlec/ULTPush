@@ -1,13 +1,19 @@
 package com.kairlec.ultpush.http
 
 import io.javalin.http.Context
+import io.javalin.http.util.ContextUtil
 import io.javalin.http.util.ContextUtil.splitKeyValueStringAndGroupByKey
+import io.javalin.http.util.MultipartUtil
 import java.io.InputStream
 import java.util.*
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-class JavalinHttpContext(private val context: Context) : HttpContext {
+class JavalinHttpContext(private val context: Context, override var scope: HttpScope) : HttpContext {
+    override fun getMultiPartFiles(filename: String): List<PartFile> {
+        return context.uploadedFiles(filename).map { JavalinPartFile(it) }
+    }
+
     override val request: HttpServletRequest
         get() = context.req
 
@@ -18,12 +24,34 @@ class JavalinHttpContext(private val context: Context) : HttpContext {
         get() = context.contentLength().toLong()
     override val headersMap: Map<String, Enumeration<String>> =
         headerNames.asSequence().associateWith { getHeaders(it) }
-    override val headerMap: Map<String, String> = headerNames.asSequence().associateWith { getHeader(it)!! }
-    override val queryStringMap: Map<String, List<String>> = splitKeyValueStringAndGroupByKey(
-        queryString ?: "",
-        requestCharset.name()
-    )
-    override val cookieMap: Map<String, String> = request.cookies?.associate { it.name to it.value } ?: emptyMap()
+    override val headerMap: Map<String, String> = context.headerMap()
+    override val queryStringMap: Map<String, List<String>> get() = context.queryParamMap()
+    override val cookieMap: Map<String, String> get() = context.cookieMap()
+    override val formParamMap: Map<String, List<String>> get() = context.formParamMap()
+
+    override fun getFormParam(key: String): String? {
+        return context.formParam(key)
+    }
+
+    override fun getFormParam(key: String, default: String): String {
+        return context.formParam(key, default)!!
+    }
+
+    override fun getFormParams(key: String): List<String> {
+        return context.formParams(key)
+    }
+
+    override fun getQueryParam(key: String): String? {
+        return context.queryParam(key)
+    }
+
+    override fun getQueryParam(key: String, default: String): String {
+        return context.queryParam(key, default)!!
+    }
+
+    override fun getQueryParams(key: String): List<String> {
+        return context.queryParams(key)
+    }
 
     override fun <T> getBody(clazz: Class<T>): T {
         return when {
@@ -54,4 +82,3 @@ class JavalinHttpContext(private val context: Context) : HttpContext {
     }
 }
 
-val Context.custom get() = JavalinHttpContext(this)
