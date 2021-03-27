@@ -1,0 +1,9 @@
+{
+  "namespace": "ultpush-wework-module",
+  "package": [
+      "com.kairlec.ultpush.wework"
+  ],
+  "name": "ULTPush-WeWork-Module",
+  "version": "v1",
+  "versionCode": 1
+}

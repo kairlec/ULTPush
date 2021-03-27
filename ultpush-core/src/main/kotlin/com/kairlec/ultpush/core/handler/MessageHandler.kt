@@ -3,7 +3,6 @@ package com.kairlec.ultpush.core.handler
 import com.google.inject.TypeLiteral
 import com.kairlec.ultpush.bind.ULTInterface
 import com.kairlec.ultpush.core.Filter
-import com.kairlec.ultpush.bind.TypeLiteralAble
 import com.kairlec.ultpush.core.pusher.Pusher
 import com.kairlec.ultpush.core.pusher.PusherMsg
 import com.kairlec.ultpush.core.receiver.ReceiverMsg
@@ -22,8 +21,8 @@ abstract class MessageHandler<T : ReceiverMsg, R : PusherMsg> : Filter<T> {
     override fun allow(content: T) = true
 
     override fun toString(): String {
+        Thread.currentThread()
         return name
     }
-
 
 }

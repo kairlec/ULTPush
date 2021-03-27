@@ -20,6 +20,7 @@ dependencies {
     testImplementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
     testCompileOnly("org.junit.jupiter:junit-jupiter-api:${Versions.junit}")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
+    testImplementation("org.reflections:reflections:${Versions.reflections}")
 }
 
 tasks.withType<Test> {

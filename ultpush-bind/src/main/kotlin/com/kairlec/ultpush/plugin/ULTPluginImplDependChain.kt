@@ -1,21 +1,18 @@
-package com.kairlec.ultpush.component
+package com.kairlec.ultpush.plugin
 
-import java.io.ByteArrayOutputStream
-import java.io.PrintWriter
-
-
-class ULTComponentStatus(
-    val component: ULTComponent,
+class ULTPluginImplStatusChain(
+    val pluginImpl: ULTPluginImpl,
     val status: Boolean,
     val exception: Throwable? = null,
     val message: String? = exception?.message,
-    val parent: ULTComponentStatus? = null
+    val parent: ULTPluginImplStatusChain? = null
 ) {
     override fun toString(): String {
         return if (status) {
             "[Success]"
         } else {
             buildString {
+                append("[name=${pluginImpl.name}][class=${pluginImpl.clazz.name}]")
                 if (message != null) {
                     append("message:")
                     append(message)
@@ -35,16 +32,16 @@ class ULTComponentStatus(
     }
 }
 
-fun ULTComponent.success(): ULTComponentStatus {
-    return ULTComponentStatus(this, true)
+fun ULTPluginImpl.success(): ULTPluginImplStatusChain {
+    return ULTPluginImplStatusChain(this, true)
 }
 
-fun ULTComponent.failed(cause: Throwable?, message: String? = cause?.message): ULTComponentStatus {
-    return ULTComponentStatus(this, false, cause, message)
+fun ULTPluginImpl.failed(cause: Throwable?, message: String? = cause?.message): ULTPluginImplStatusChain {
+    return ULTPluginImplStatusChain(this, false, cause, message)
 }
 
-fun ULTComponent.failed(message: String? = null): ULTComponentStatus {
-    return ULTComponentStatus(this, false, null, message)
+fun ULTPluginImpl.failed(message: String? = null): ULTPluginImplStatusChain {
+    return ULTPluginImplStatusChain(this, false, null, message)
 }
 
 /**
@@ -54,6 +51,6 @@ fun ULTComponent.failed(message: String? = null): ULTComponentStatus {
  *
  * 成功:向下传递成功
  */
-fun ULTComponent.transfer(status: ULTComponentStatus): ULTComponentStatus {
-    return ULTComponentStatus(this, status.status, null, null, status)
+fun ULTPluginImpl.transfer(status: ULTPluginImplStatusChain): ULTPluginImplStatusChain {
+    return ULTPluginImplStatusChain(this, status.status, null, null, status)
 }

@@ -1,6 +1,6 @@
 package com.kairlec.ultpush.bind
 
-import com.kairlec.ultpush.component.ULTComponentLifecycle
+import com.kairlec.ultpush.plugin.ULTPluginImplLifecycle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
@@ -12,9 +12,9 @@ fun runLifecycle() {
             delay(10)
         }
     }
-    ULTComponentLifecycle.run()
+    ULTPluginImplLifecycle.run()
 }
 
 fun stop() {
-    ULTComponentLifecycle.destroy()
+    ULTPluginImplLifecycle.destroy()
 }

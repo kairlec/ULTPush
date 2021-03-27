@@ -19,7 +19,7 @@ object Versions {
 
     const val javalin = "3.13.3"
 
-    const val guice = "5.0.0-BETA-1"
+    const val guice = "5.0.1"
 
     const val servlet = "4.0.1"
 }

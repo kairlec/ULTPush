@@ -78,3 +78,8 @@ tasks.forEach {
     it.enabled = false
 }
 
+tasks.withType<Delete> {
+    File("${rootDir}/debug/plugins").list { _, name ->
+        name.endsWith(".jar")
+    }?.forEach { File("${rootDir}/debug/plugins/${it}").delete() }
+}

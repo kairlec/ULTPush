@@ -1,9 +1,7 @@
 package com.kairlec.ultpush.wework.receiver.http
 
-import com.google.common.io.Resources
-import com.google.inject.Inject
 import com.google.inject.TypeLiteral
-import com.google.inject.name.Named
+import com.kairlec.ultpush.ULTAbstractDepend
 import com.kairlec.ultpush.bind.TypeLiteralAble
 import com.kairlec.ultpush.bind.ULTImpl
 import com.kairlec.ultpush.component.lifecycle.ULTLoad
@@ -12,7 +10,7 @@ import com.kairlec.ultpush.configuration.Config
 import com.kairlec.ultpush.configuration.Configuration
 import com.kairlec.ultpush.core.*
 import com.kairlec.ultpush.core.receiver.Receiver
-import com.kairlec.ultpush.core.util.ClassPathResources
+import com.kairlec.ultpush.util.ClassPathResources
 import com.kairlec.ultpush.http.HttpCommon.HTML_CT
 import com.kairlec.ultpush.http.HttpContext
 import com.kairlec.ultpush.http.HttpMethod
@@ -25,13 +23,15 @@ import com.kairlec.ultpush.wework.toUser
 import com.kairlec.ultpush.wework.withData
 import org.slf4j.LoggerFactory
 import java.io.FileNotFoundException
+import javax.inject.Inject
+import javax.inject.Named
 
 @ULTImpl("WeWorkHttpReceiver", false)
 class WeWorkHttpReceiver @Inject constructor(
     private val configuration: Configuration,
     private val httpService: HttpService,
     @Named("WeWorkUserHelper") private val userHelper: UserHelper
-) : Receiver<WeWorkMessage>() {
+) : Receiver<WeWorkMessage>(){
     companion object : TypeLiteralAble {
         private val logger = LoggerFactory.getLogger(WeWorkHttpReceiver::class.java)
         override val typeLiteral = object : TypeLiteral<Receiver<WeWorkMessage>>() {}
@@ -68,10 +68,12 @@ class WeWorkHttpReceiver @Inject constructor(
     }
 
     @ULTRun(
-        dependNames = ["WeWorkMessageHandler", "WeWorkUserHelper"],
-        dependClasses = [HttpService::class]
+        //dependNames = ["WeWorkMessageHandler", "WeWorkUserHelper"],
+        //dependClasses = [HttpService::class]
     )
     fun run() {
+        awaitDependClasses("WeWorkMessageHandler","WeWorkUserHelper")
+        awaitDependClasses(HttpService::class.java)
         logger.info("reciever hook http service:${httpService.hashCode()}")
         httpService.before {
             this.getRequestParam("from")?.let {

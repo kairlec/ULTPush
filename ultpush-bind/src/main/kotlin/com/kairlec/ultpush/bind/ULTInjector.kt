@@ -6,8 +6,8 @@ import com.google.inject.Guice
 import com.google.inject.Injector
 import com.google.inject.Key
 import com.kairlec.ultpush.component.LifecycleException
-import com.kairlec.ultpush.component.ULTComponent
-import com.kairlec.ultpush.component.ULTComponentLifecycle
+import com.kairlec.ultpush.getULTPluginImpl
+import com.kairlec.ultpush.plugin.ULTPluginImpl
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
@@ -28,19 +28,19 @@ object ULTInjector {
         clazz: Class<T>,
         name: String,
         eventNotFound: () -> T,
-        eventOK: ULTComponent.(Any) -> T,
-        eventFailed: ULTComponent.(Any) -> T
+        eventOK: ULTPluginImpl.(Any) -> T,
+        eventFailed: ULTPluginImpl.(Any) -> T
     ): T {
-        val component = ULTComponentLifecycle[clazz] ?: ULTComponentLifecycle[name] ?: return eventNotFound()
+        val pluginImpl = getULTPluginImpl[clazz] ?: getULTPluginImpl[name] ?: return eventNotFound()
         val channel: Channel<Boolean> = Channel(1)
-        component.ifStatus(ULTComponent.ComponentStatus.RUNNING, {
+        pluginImpl.ifStatus(ULTPluginImpl.ULTPluginImplStatus.RUNNING, {
             runBlocking { channel.send(true) }
         }) {
             runBlocking {
                 when (it) {
-                    ULTComponent.ComponentStatus.FAILED ->
+                    ULTPluginImpl.ULTPluginImplStatus.FAILED ->
                         channel.send(false)
-                    ULTComponent.ComponentStatus.RUNNING ->
+                    ULTPluginImpl.ULTPluginImplStatus.RUNNING ->
                         channel.send(true)
                     else -> {
                     }
@@ -50,9 +50,9 @@ object ULTInjector {
         return runBlocking {
             val ok = channel.receive()
             if (ok) {
-                eventOK(component, component.instance)
+                eventOK(pluginImpl, pluginImpl.instance)
             } else {
-                eventFailed(component, component.instance)
+                eventFailed(pluginImpl, pluginImpl.instance)
             }
         }
     }
@@ -61,16 +61,16 @@ object ULTInjector {
         clazz: Class<T>,
         name: String,
         eventNotFound: () -> T?,
-        eventOK: ULTComponent.(Any) -> T?,
-        eventFailed: ULTComponent.(Any) -> T?
+        eventOK: ULTPluginImpl.(Any) -> T?,
+        eventFailed: ULTPluginImpl.(Any) -> T?
     ): T? {
-        val component = ULTComponentLifecycle[clazz] ?: ULTComponentLifecycle[name] ?: return eventNotFound()
+        val pluginImpl = getULTPluginImpl[clazz] ?: getULTPluginImpl[name] ?: return eventNotFound()
         val channel: Channel<Boolean> = Channel(1)
-        component.ifStatus(ULTComponent.ComponentStatus.RUNNING, {
+        pluginImpl.ifStatus(ULTPluginImpl.ULTPluginImplStatus.RUNNING, {
             runBlocking { channel.send(true) }
         }) {
             runBlocking {
-                if (it == ULTComponent.ComponentStatus.RUNNING) {
+                if (it == ULTPluginImpl.ULTPluginImplStatus.RUNNING) {
                     channel.send(true)
                 } else {
                     channel.send(false)
@@ -80,9 +80,9 @@ object ULTInjector {
         return runBlocking {
             val ok = channel.receive()
             if (ok) {
-                eventOK(component, component.instance)
+                eventOK(pluginImpl, pluginImpl.instance)
             } else {
-                eventFailed(component, component.instance)
+                eventFailed(pluginImpl, pluginImpl.instance)
             }
         }
     }
@@ -90,7 +90,7 @@ object ULTInjector {
     fun <T : Any> getInstance(clazz: Class<T>): T {
         return check(clazz, clazz.name, { ULTInternalInjector.getInstance(clazz) }, { it as T }) {
             throw LifecycleException(
-                this.implClazz.kotlin,
+                this.clazz.kotlin,
                 name,
                 null,
                 "get instance failed because an error occurred while completing the life cycle"
@@ -101,7 +101,7 @@ object ULTInjector {
     fun <T : Any> getInstanceOrNull(clazz: Class<T>): T? {
         return checkNullable(clazz, clazz.name, { ULTInternalInjector.getInstanceOrNull(clazz) }, { it as T? }) {
             throw LifecycleException(
-                this.implClazz.kotlin,
+                this.clazz.kotlin,
                 name,
                 null,
                 "get instance failed because an error occurred while completing the life cycle"
@@ -112,7 +112,7 @@ object ULTInjector {
     fun <T : Any> getGenericInstance(clazz: Class<T>, assignable: Boolean): T {
         return check(clazz, clazz.name, { ULTInternalInjector.getGenericInstance(clazz, assignable) }, { it as T }) {
             throw LifecycleException(
-                this.implClazz.kotlin,
+                this.clazz.kotlin,
                 name,
                 null,
                 "get instance failed because an error occurred while completing the life cycle"
@@ -127,7 +127,7 @@ object ULTInjector {
             { ULTInternalInjector.getGenericInstanceOrNull(clazz, assignable) },
             { it as T? }) {
             throw LifecycleException(
-                this.implClazz.kotlin,
+                this.clazz.kotlin,
                 name,
                 null,
                 "get instance failed because an error occurred while completing the life cycle"
@@ -140,7 +140,7 @@ object ULTInjector {
         val instance = ULTInternalInjector.getGenericInstance(key, assignable)
         return check(instance::class.java as Class<T>, key.typeLiteral.type.typeName, { instance }, { instance }) {
             throw LifecycleException(
-                this.implClazz.kotlin,
+                this.clazz.kotlin,
                 name,
                 null,
                 "get instance failed because an error occurred while completing the life cycle"
@@ -159,7 +159,7 @@ object ULTInjector {
                 { instance }) {
                 logger.warn(
                     "", LifecycleException(
-                        this.implClazz.kotlin,
+                        this.clazz.kotlin,
                         name,
                         null,
                         "get instance failed because an error occurred while completing the life cycle"

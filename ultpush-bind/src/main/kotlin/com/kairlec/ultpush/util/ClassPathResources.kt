@@ -1,4 +1,4 @@
-package com.kairlec.ultpush.core.util
+package com.kairlec.ultpush.util
 
 import java.io.InputStream
 import java.net.URL

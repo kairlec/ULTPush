@@ -1,91 +1,75 @@
 package com.kairlec.ultpush.core
 
 import com.kairlec.ultpush.bind.runLifecycle
+import com.kairlec.ultpush.core.util.CustomCondition
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
-import java.lang.Exception
-import java.util.concurrent.locks.Condition
-import kotlin.concurrent.thread
-import java.util.concurrent.locks.ReentrantLock
 
+object Application {
+    private var started = false
 
-class Application private constructor() {
-    private val mainThread: Thread = thread(start = true, isDaemon = false, name = "ULTPush Application") {
-        runLifecycle()
-        try {
-            LOCK.lock()
-            STOP.await()
-        } catch (e: InterruptedException) {
-            logger.warn(" service   stopped, interrupted by other thread!", e)
-        } finally {
-            LOCK.unlock()
+    private val mainJob = GlobalScope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
+        withContext(NonCancellable) {
+            runLifecycle()
+            LOCK.withLock {
+                STOP.await()
+            }
         }
-    }
-
-    init {
-        Runtime.getRuntime().addShutdownHook(Thread({
-            try {
-                com.kairlec.ultpush.bind.stop()
-            } catch (e: Exception) {
-                logger.error("StartMain stop exception ", e)
-            }
-            logger.info("jvm exit, all service stopped.")
-            try {
-                LOCK.lock()
-                STOP.signal()
-            } finally {
-                LOCK.unlock()
-            }
-        }, "ULTPush-Main-shutdown-hook"))
     }
 
     fun pid(): Long {
         return ProcessHandle.current().pid()
     }
 
-    fun join() {
-        mainThread.join()
-    }
-
-    companion object {
-        private val logger = LoggerFactory.getLogger(Application::class.java)
-        lateinit var args: Array<String>
-            private set
-
-        private val applicationStartMutex = Mutex()
-        private lateinit var application: Application
-        private val LOCK = ReentrantLock()
-        private val STOP: Condition = LOCK.newCondition()
-
-
-        suspend fun start(): Application {
-            applicationStartMutex.withLock {
-                if (!this::args.isInitialized) {
-                    this.args = emptyArray()
-                }
-                return if (this::application.isInitialized) {
-                    application
-                } else {
-                    application = Application()
-                    application
-                }
+    suspend fun join() {
+        applicationStartMutex.withLock {
+            if (mainJob.isCompleted) {
+                return
             }
-        }
-
-        suspend fun start(args: Array<String>): Application {
-            applicationStartMutex.withLock {
-                if (!this::args.isInitialized) {
-                    this.args = args
-                }
-                return if (this::application.isInitialized) {
-                    application
-                } else {
-                    application = Application()
-                    application
-                }
+            if (!started) {
+                start()
+            }
+            if (mainJob.isActive) {
+                mainJob.join()
             }
         }
     }
 
+    private val logger = LoggerFactory.getLogger(Application::class.java)
+    var args: Array<String> = emptyArray()
+        private set
+
+    private val applicationStartMutex = Mutex()
+
+    private val LOCK = Mutex()
+    private val STOP = CustomCondition()
+
+    suspend fun start() {
+        start(emptyArray())
+    }
+
+    suspend fun start(args: Array<String>) {
+        applicationStartMutex.withLock {
+            if (!started) {
+                this.args = args
+                mainJob.start()
+                Runtime.getRuntime().addShutdownHook(Thread({
+                    try {
+                        com.kairlec.ultpush.bind.stop()
+                    } catch (e: Throwable) {
+                        logger.error("StartMain stop exception ", e)
+                    }
+                    logger.info("jvm exit, all service stopped.")
+                    runBlocking {
+                        LOCK.withLock {
+                            STOP.signal()
+                        }
+                    }
+                }, "ULTPush-Main-shutdown-hook"))
+                started = true
+            }
+        }
+    }
 }

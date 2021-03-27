@@ -7,7 +7,9 @@ import com.google.inject.AbstractModule
 import com.google.inject.Scopes
 import com.google.inject.TypeLiteral
 import com.google.inject.name.Names
-import com.kairlec.ultpush.component.ULTComponentLifecycle
+import com.kairlec.ultpush.ULTContextManager
+import com.kairlec.ultpush.plugin.ULTPlugin
+import com.kairlec.ultpush.plugin.ULTPluginImpl
 import org.reflections.Reflections
 import org.reflections.scanners.SubTypesScanner
 import org.reflections.scanners.TypeAnnotationsScanner
@@ -15,7 +17,6 @@ import org.reflections.util.ClasspathHelper
 import org.reflections.util.ConfigurationBuilder
 import org.slf4j.LoggerFactory
 import java.io.File
-import java.lang.management.ManagementFactory
 import java.net.URLClassLoader
 import java.util.jar.JarFile
 
@@ -45,8 +46,10 @@ class ULTInternalModule : AbstractModule() {
         intf: Class<Any>,
         pluginName: String?,
         implAnn: ULTImpl,
-    ) {
-        intf.getAnnotation(ULTInterface::class.java)?.let {
+        plugin: ULTPlugin
+    ): ULTPluginImpl? {
+        return intf.getAnnotation(ULTInterface::class.java)?.let {
+            val pluginInterface = ULTContextManager.submit(it, intf, plugin)
             val order = it.order.coerceAtMost(implAnn.order)
             val name = if (implAnn.name.isEmpty()) {
                 impl.name
@@ -89,8 +92,10 @@ class ULTInternalModule : AbstractModule() {
                 }
                 bind(impl).`in`(Scopes.SINGLETON)
             }
-            ULTComponentLifecycle.register(impl, tpl, name, order)
+            //val component = ULTComponentLifecycle.register(impl, tpl, name, order)
             logger.info(msg)
+            ULTContextManager.submit(implAnn, impl, plugin, tpl, name, order, pluginInterface)
+            //ULTPluginImpl(implAnn, impl, plugin, component)
         }
     }
 
@@ -98,45 +103,98 @@ class ULTInternalModule : AbstractModule() {
         impl: Class<out Any>,
         checkCurrent: Class<out Any>,
         pluginName: String?,
-        implAnn: ULTImpl
+        implAnn: ULTImpl,
+        plugin: ULTPlugin,
+        //list: MutableList<ULTPluginImpl>
     ) {
         checkCurrent.interfaces.forEach {
-            checkBindClass(impl, it, pluginName, implAnn)
+            checkBindClass(impl, it, pluginName, implAnn, plugin/*, list*/)
             tryBind(
                 impl,
                 it as Class<Any>,
                 pluginName,
-                implAnn
-            )
+                implAnn,
+                plugin
+            )/*?.run {
+                list.add(this)
+            }*/
         }
         checkCurrent.superclass?.let {
-            checkBindClass(impl, it, pluginName, implAnn)
+            checkBindClass(impl, it, pluginName, implAnn, plugin/*, list*/)
             tryBind(
                 impl,
                 it as Class<Any>,
                 pluginName,
-                implAnn
-            )
+                implAnn,
+                plugin
+            )/*?.run {
+                list.add(this)
+            }*/
         }
     }
 
     override fun configure() {
-        val builder = ConfigurationBuilder()
-        builder.addUrls(
-            ClasspathHelper.forPackage(
-                "com.kairlec.ultpush",
-                ClasspathHelper.contextClassLoader(),
-                ClasspathHelper.staticClassLoader()
-            )
-        )
-        builder.addScanners(SubTypesScanner(), TypeAnnotationsScanner())
-        val reflections = Reflections(builder)
-        val classes = reflections.getTypesAnnotatedWith(ULTImpl::class.java)
-        classes.forEach {
-            val ann = it.getDeclaredAnnotation(ULTImpl::class.java)
-            checkBindClass(it, it, null, ann)
+        // 当使用-cp来指定加载插件的时候,所有的资源将都被加载进ClassPath
+        ClasspathHelper.contextClassLoader().getResources("ultpush-plugin.json").asIterator().forEach { url ->
+            try {
+                val content = url.readText()
+                val pluginInfo = objectMapper.readTree(content)
+                val pluginNamespace = pluginInfo["namespace"]?.textValue()
+                    ?: throw UnsupportedOperationException("Cannot access plugin namespace in content:${content}")
+                val pluginName = pluginInfo["name"]?.textValue()
+                    ?: throw UnsupportedOperationException("Cannot access plugin name in content:${content}")
+                val `package` = pluginInfo["package"]
+                    ?: throw UnsupportedOperationException("Cannot access plugin package in content:${content}")
+                val pluginScanPackages = if (`package`.isArray) {
+                    `package`.map { it.textValue() }
+                } else {
+                    listOf<String>(`package`.asText())
+                }
+                val builder = ConfigurationBuilder()
+                pluginScanPackages.map { packageName ->
+                    builder.addUrls(
+                        ClasspathHelper.forPackage(
+                            packageName,
+                            ClasspathHelper.contextClassLoader(),
+                            ClasspathHelper.staticClassLoader()
+                        )
+                    )
+                }
+                builder.addScanners(SubTypesScanner(), TypeAnnotationsScanner())
+                val reflections = Reflections(builder)
+                val classes = reflections.getTypesAnnotatedWith(ULTImpl::class.java)
+//                val plugin = ULTPlugin.build {
+//                    name = pluginName
+//                    packages.addAll(pluginScanPackages)
+//                    pluginInfo["version"]?.textValue()?.let {
+//                        version = it
+//                    }
+//                    pluginInfo["versionCode"]?.intValue()?.let {
+//                        versionCode = it
+//                    }
+//                    classLoaders.add(ClasspathHelper.contextClassLoader())
+//                    classLoaders.add(ClasspathHelper.staticClassLoader())
+//                }
+                val plugin = ULTContextManager.submit(
+                    pluginNamespace,
+                    pluginName,
+                    pluginInfo["version"]?.textValue(),
+                    pluginInfo["versionCode"]?.intValue(),
+                    pluginScanPackages.toMutableList(),
+                    mutableListOf(ClasspathHelper.contextClassLoader(), ClasspathHelper.staticClassLoader())
+                )
+                classes.forEach {
+                    val ann = it.getDeclaredAnnotation(ULTImpl::class.java)
+                    //val implList = LinkedList<ULTPluginImpl>()
+                    checkBindClass(it, it, pluginName, ann, plugin/*, implList*/)
+                    //(plugin.registeredImpls as MutableList).addAll(implList)
+                }
+                logger.info(plugin.toString())
+            } catch (e: Throwable) {
+                logger.error("load error:${e.message}", e)
+            }
         }
-        // 先加载自带的,再加载插件
+        // 先加载ClassPath内的,再加载Plugins插件文件夹内的
         logger.info("ready to load plugin")
         loadPlugin()
         logger.info("load plugin finished")
@@ -157,6 +215,10 @@ class ULTInternalModule : AbstractModule() {
         }.listFiles { _, name ->
             name.endsWith(".jar")
         }?.forEach(::loadJar)
+        logger.info("------------")
+        logger.info(ULTContextManager.plugins.values.toString())
+        logger.info(ULTContextManager.impls.values.toString())
+        logger.info(ULTContextManager.interfaces.values.toString())
     }
 
     private fun loadJar(pathToJar: File) {
@@ -177,28 +239,39 @@ class ULTInternalModule : AbstractModule() {
 
             val pluginInfo = objectMapper.readTree(pluginText)
 
-            val pluginName = pluginInfo["name"].asText()
+            val pluginNamespace = pluginInfo["namespace"]?.textValue()
+                ?: error("Cannot access plugin namespace in plugin info:${pathToJar.nameWithoutExtension}")
+            val pluginName = pluginInfo["name"]?.textValue()
                 ?: run {
                     logger.warn("[file:${pathToJar.nameWithoutExtension}]pluginInfo don't exist name,use the file name as plugin name")
                     pathToJar.nameWithoutExtension
                 }
-
-            val packageName = pluginInfo["package"].asText() ?: run {
-                error("${pluginName.currentLocation}Cannot access 'package' in plugin info")
+            val `package` = pluginInfo["package"]
+                ?: throw UnsupportedOperationException("${pluginName.currentLocation}Cannot access plugin package in plugin info")
+            val pluginScanPackages = if (`package`.isArray) {
+                `package`.map { it.textValue() }.toMutableList()
+            } else {
+                mutableListOf<String>(`package`.asText())
             }
-            val packageDirName = packageName.replace(".", "/")
-            val runtimeMXBean = ManagementFactory.getRuntimeMXBean()
-            println(runtimeMXBean.name)
-            logger.info(child.name)
-            logger.info(child.toString())
+            val plugin = ULTContextManager.submit(
+                pluginNamespace,
+                pluginName,
+                pluginInfo["version"]?.textValue(),
+                pluginInfo["versionCode"]?.intValue(),
+                pluginScanPackages,
+                mutableListOf(child)
+            )
+            val packageDirName = pluginScanPackages.map { it.replace(".", "/") }
+//            val runtimeMXBean = ManagementFactory.getRuntimeMXBean()
+//            println(runtimeMXBean.name)
+//            logger.info(child.name)
+//            logger.info(child.toString())
             thread(start = true, isDaemon = true, child, "Plugin Loader Thread") {
-                logger.info(Thread.currentThread().contextClassLoader.name)
-                logger.info(Thread.currentThread().contextClassLoader.toString())
                 val e: Enumeration<JarEntry> = jarFile.entries()
                 while (e.hasMoreElements()) {
                     val je: JarEntry = e.nextElement()
                     val name = je.name.removePrefix("/")
-                    if (je.isDirectory || !name.endsWith(".class") || !name.startsWith(packageDirName)) {
+                    if (je.isDirectory || !name.endsWith(".class") || packageDirName.all { !name.startsWith(it) }) {
                         continue
                     }
                     // -6 because of .class and className is 'dot' for split
@@ -210,20 +283,22 @@ class ULTInternalModule : AbstractModule() {
                         logger.info("${pluginName.currentLocation}Load ULTInterface '${clazz.name}'")
                         //TODO 保留ann额外内容
                         val ann = clazz.getDeclaredAnnotation(ULTInterface::class.java)
+                        ULTContextManager.submit(ann, clazz, plugin)
                     } else if (clazz.isAnnotationPresent(ULTImpl::class.java)) {
                         logger.info("${pluginName.currentLocation}Load ULTImpl '${clazz.name}'")
                         val ann = clazz.getDeclaredAnnotation(ULTImpl::class.java)
-                        checkBindClass(clazz, clazz, pluginName, ann)
+                        //val list = LinkedList<ULTPluginImpl>()
+                        checkBindClass(clazz, clazz, pluginName, ann, plugin/*, list*/)
+                        //(plugin.registeredImpls as MutableList).addAll(list)
                     }
                 }
                 logger.info("Load plugin file ${pathToJar.nameWithoutExtension} success")
             }.join()
-
+            logger.info(plugin.toString())
             logger.info("Load plugin file ${pathToJar.nameWithoutExtension} success")
         } catch (e: Throwable) {
             logger.error("Load plugin file ${pathToJar.nameWithoutExtension} failed:${e.message}", e)
         }
-
     }
 
 }
