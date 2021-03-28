@@ -6,6 +6,7 @@ import com.kairlec.ultpush.core.MessageInfo
 /**
  * 推送的消息
  */
+
 interface PusherMsg : MessageInfo, Filterable {
     /**
      * 允许超类推送

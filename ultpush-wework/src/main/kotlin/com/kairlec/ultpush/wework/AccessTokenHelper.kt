@@ -1,16 +1,21 @@
 package com.kairlec.ultpush.wework
 
 import com.kairlec.ultpush.wework.pusher.PusherExceptions
-import com.kairlec.ultpush.wework.pusher.objectMapper
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.Serializable
 import java.time.Duration
 import java.time.LocalDateTime
-import java.util.*
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.schedule
-import kotlin.concurrent.withLock
 import kotlin.properties.Delegates
 
+
+@Serializable
+data class AccessToken(
+    val errcode: Int,
+    val errmsg: String,
+    val access_token: String,
+    val expires_in: Long
+)
 
 /**
  * Token鉴权辅助器
@@ -35,7 +40,7 @@ abstract class AccessTokenHelper(protected open val validateCertificateChains: B
     /**
      * 更新锁
      */
-    protected open val updateLocker: Lock = ReentrantLock()
+    protected open val updateLock = Mutex()
 
     /**
      * 更新url
@@ -43,64 +48,53 @@ abstract class AccessTokenHelper(protected open val validateCertificateChains: B
     protected abstract val url: String
 
     /**
-     * 定时器
-     */
-    protected open var timer = nextTimer(1)
-
-    /**
-     * 更新定时器
-     */
-    protected fun nextTimer(delay: Long): TimerTask {
-        return Timer("AccessTokenHelperUpdater", false).schedule(delay) {
-            update()
-        }
-    }
-
-    /**
      * 更新token
      */
-    open fun update() {
-        updateLocker.withLock {
-            var tokenResult = ""
-            Sender.get(url, validateCertificateChains)
-                    .whenComplete { httpResponse, throwable ->
-                        if (throwable != null) {
-                            throw PusherExceptions.AccessTokenException(-1, throwable)
-                        } else {
-                            tokenResult = httpResponse.body()
-                        }
-                    }.join()
-            val jsonNode = try {
-                objectMapper.readTree(tokenResult)
+    suspend fun update() {
+        updateLock.withLock {
+            val accessToken:AccessToken = try {
+                SenderKtor.get(url, validateCertificateChains)
             } catch (e: Exception) {
                 throw PusherExceptions.AccessTokenException(-1, e)
             }
-            if (jsonNode["errcode"]?.asInt() ?: 0 != 0) {
+            if (accessToken.errcode != 0) {
                 throw PusherExceptions.AccessTokenException(
-                    jsonNode["errcode"].asInt(),
+                    accessToken.errcode,
                     null,
-                    jsonNode["errmsg"].asText()
+                    accessToken.errmsg
                 )
             }
-            token = jsonNode["access_token"].asText()
-            expiresIn = jsonNode["expires_in"].asLong()
+            token = accessToken.access_token
+            expiresIn = accessToken.expires_in
             expiredTime = LocalDateTime.now().plusSeconds(expiresIn)
-            timer.cancel()
-            timer = nextTimer(expiresIn * 1000)
         }
     }
 
     /**
      * 获取token,若即将过期,则更新token后返回
      */
-    val accessToken: String
-        get() {
-            updateLocker.withLock { }
+    suspend fun get(): String {
+        updateLock.withLock { }
+        if (!this::expiredTime.isInitialized) {
+            update()
+        } else {
             val duration = Duration.between(LocalDateTime.now(), expiredTime)
             if (duration.toMinutes() < 5) {
-                timer.cancel()
                 update()
             }
-            return token
         }
+        return token
+    }
+
+//    val accessToken: String
+//        get() {
+//            return runBlocking {
+//                updateLock.withLock { }
+//                val duration = Duration.between(LocalDateTime.now(), expiredTime)
+//                if (duration.toMinutes() < 5) {
+//                    update()
+//                }
+//                token
+//            }
+//        }
 }

@@ -1,6 +1,6 @@
 package com.kairlec.ultpush.wework.user
 
-import com.fasterxml.jackson.module.kotlin.convertValue
+//import com.fasterxml.jackson.module.kotlin.convertValue
 import com.google.inject.Inject
 import com.kairlec.ultpush.bind.ULTImpl
 import com.kairlec.ultpush.component.lifecycle.ULTInit
@@ -11,7 +11,7 @@ import com.kairlec.ultpush.configuration.Configuration
 import com.kairlec.ultpush.user.IDUser
 import com.kairlec.ultpush.user.IDUserHelper
 import com.kairlec.ultpush.user.StringIdUser
-import com.kairlec.ultpush.wework.pusher.objectMapper
+//import com.kairlec.ultpush.wework.pusher.objectMapper
 import com.kairlec.ultpush.wework.user.User.Companion.insert
 import com.kairlec.ultpush.wework.utils.PBKDF2Util
 import org.jetbrains.exposed.dao.Entity
@@ -43,9 +43,9 @@ object Users : IdTable<String>() {
 
 internal const val SEPARATOR = ":"
 
-internal fun Map<String, Any>.genToString() = objectMapper.writeValueAsString(this)
+//internal fun Map<String, Any>.genToString() = objectMapper.writeValueAsString(this)
 
-internal fun String.toStringKeyMap(): HashMap<String, Any> = objectMapper.convertValue(objectMapper.readTree(this))
+//internal fun String.toStringKeyMap(): HashMap<String, Any> = objectMapper.convertValue(objectMapper.readTree(this))
 
 internal fun Set<String>.genToString() = joinToString(SEPARATOR)
 
@@ -57,7 +57,7 @@ class User(openUserId: EntityID<String>) : Entity<String>(openUserId), StringIdU
             User.new(user.openUserId.value) {
                 userId = user.userId
                 salt = user.salt
-                config = user.config
+//                config = user.config
                 token = user.token
                 admin = user.admin
                 disable = user.disable
@@ -83,7 +83,7 @@ class User(openUserId: EntityID<String>) : Entity<String>(openUserId), StringIdU
                         token = PBKDF2Util.getEncryptedPassword(user.userID, newSalt)
                     }
                 } else {
-                    User[user.openUserID]
+                    User[user.openUserID!!]
                 }
             }
         }
@@ -108,11 +108,11 @@ class User(openUserId: EntityID<String>) : Entity<String>(openUserId), StringIdU
         private set
     var token by Users.token
         private set
-    var config: Map<String, Any> by Users.config.transform(
-        { obj: Map<String, Any> -> obj.genToString() },
-        { str: String -> str.toStringKeyMap() }
-    )
-        private set
+//    var config: Map<String, Any> by Users.config.transform(
+//        { obj: Map<String, Any> -> obj.genToString() },
+//        { str: String -> str.toStringKeyMap() }
+//    )
+//        private set
     var acceptKeywords: Set<String> by Users.acceptKeywords.transform(
         { obj -> obj.genToString() },
         { str -> str.toStringSet() }
@@ -192,7 +192,7 @@ class UsersHelper @Inject constructor(
         assertSupportOperate(users) {
             forEach {
                 transaction {
-                    User.insert(it)
+                    insert(it)
                 }
             }
         }
@@ -210,7 +210,7 @@ class UsersHelper @Inject constructor(
                         it[acceptLevel] = user.acceptLevel
                         it[acceptKeywords] = user.acceptKeywords.genToString()
                         it[refuseKeywords] = user.refuseKeywords.genToString()
-                        it[config] = user.config.genToString()
+//                        it[config] = user.config.genToString()
                     }
                 }
             }

@@ -1,12 +1,13 @@
 package com.kairlec.ultpush.wework.pusher
 
-import com.kairlec.ultpush.wework.Sender
+import com.kairlec.ultpush.wework.SenderKtor
 import com.kairlec.ultpush.wework.WeWorkAccessTokenHelper
 import com.kairlec.ultpush.wework.WeWorkHelper
 import com.kairlec.ultpush.wework.message.*
 import com.kairlec.ultpush.wework.pusher.pojo.MediaID
 import com.kairlec.ultpush.wework.pusher.pojo.MediaTypeEnum
 import com.kairlec.ultpush.wework.utils.UrlBuilder
+import kotlinx.serialization.Serializable
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.createType
@@ -82,21 +83,11 @@ open class WeWorkSenderHelper(
     val defaultSettings = SenderSettings(agentid)
 
     /**
-     * 复制默认设置
+     * 消息发送URL
      */
-    /**
-     * 消息发送URL接口
-     */
-    private val url: String
-        get() = UrlBuilder("https://qyapi.weixin.qq.com/cgi-bin/message/send")
-            .addQueryParameter("access_token", accessToken)
-            .build()
-
-    /**
-     * 鉴权token
-     */
-    private val accessToken: String
-        get() = accessTokenHelper.accessToken
+    suspend fun getUrl() = UrlBuilder("https://qyapi.weixin.qq.com/cgi-bin/message/send")
+        .addQueryParameter("access_token", accessTokenHelper.get())
+        .build()
 
     /**
      * 重试机制,若发送报出Pusher异常,进行重试
@@ -106,7 +97,7 @@ open class WeWorkSenderHelper(
      * @param action 要执行的动作,动作出错则重试
      * @return action动作的结果
      */
-    private inline fun <reified T> retry(count: Int = 2, crossinline action: () -> T): T {
+    private suspend inline fun <reified T> retry(count: Int = 2, crossinline action: suspend () -> T): T {
         if (count > 0) {
             for (i in 0 until count) {
                 try {
@@ -125,7 +116,8 @@ open class WeWorkSenderHelper(
         }
     }
 
-    private fun preSend(msg: WeWorkMessage, settings: SenderSettings): SenderSettings {
+    @Suppress("UNCHECKED_CAST")
+    private suspend fun preSend(msg: WeWorkMessage, settings: SenderSettings): SenderSettings {
         MediaTypeEnum.parseMedia(msg.msgtype)?.let {
             msg::class.memberProperties.find { it.returnType == Media::class.createType() }?.let {
                 (it as KProperty1<WeWorkMessage, Media>).get(msg)
@@ -143,16 +135,28 @@ open class WeWorkSenderHelper(
         return settings
     }
 
+    @Serializable
+    private data class SendResult(
+        val errcode: Int,
+        val errmsg: String
+    ) {
+        fun checkResult() {
+            if (errcode != 0) {
+                throw PusherExceptions.SendMessageException(errcode, null, errmsg)
+            }
+        }
+    }
+
     /**
      * 发送文本消息
      * @param content 文本内容
      * @param settings 发送设置,默认为Helper的设置
      */
-    fun sendText(text: Text) {
+    suspend fun sendText(text: Text) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url, preSend(text, defaultSettings).cover(text), validateCertificateChains
-            )
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(), preSend(text, defaultSettings).cover(text), validateCertificateChains
+            ).checkResult()
         }
     }
 
@@ -162,11 +166,11 @@ open class WeWorkSenderHelper(
      * @param settings 发送设置,默认为Helper的设置
      * @see [MediaID]
      */
-    fun sendImage(image: Image) {
+    suspend fun sendImage(image: Image) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url, preSend(image, defaultSettings).cover(image), validateCertificateChains
-            )
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(), preSend(image, defaultSettings).cover(image), validateCertificateChains
+            ).checkResult()
         }
     }
 
@@ -176,11 +180,11 @@ open class WeWorkSenderHelper(
      * @param settings 发送设置,默认为Helper的设置
      * @see [MediaID]
      */
-    fun sendVoice(voice: Voice) {
+    suspend fun sendVoice(voice: Voice) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url, preSend(voice, defaultSettings).cover(voice), validateCertificateChains
-            )
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(), preSend(voice, defaultSettings).cover(voice), validateCertificateChains
+            ).checkResult()
         }
     }
 
@@ -192,11 +196,11 @@ open class WeWorkSenderHelper(
      * @param settings 发送设置,默认为Helper的设置
      * @see [VideoMedia]
      */
-    fun sendVideo(video: Video) {
+    suspend fun sendVideo(video: Video) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url, preSend(video, defaultSettings).cover(video), validateCertificateChains
-            )
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(), preSend(video, defaultSettings).cover(video), validateCertificateChains
+            ).checkResult()
         }
     }
 
@@ -206,11 +210,11 @@ open class WeWorkSenderHelper(
      * @param settings 发送设置,默认为Helper的设置
      * @see [MediaID]
      */
-    fun sendFile(file: File) {
+    suspend fun sendFile(file: File) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url, preSend(file, defaultSettings).cover(file), validateCertificateChains
-            )
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(), preSend(file, defaultSettings).cover(file), validateCertificateChains
+            ).checkResult()
         }
     }
 
@@ -219,11 +223,11 @@ open class WeWorkSenderHelper(
      * @param settings 发送设置,默认为Helper的设置
      * @see [InnerTextCard]
      */
-    fun sendTextCard(textCard: TextCard) {
+    suspend fun sendTextCard(textCard: TextCard) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url, preSend(textCard, defaultSettings).cover(textCard), validateCertificateChains
-            )
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(), preSend(textCard, defaultSettings).cover(textCard), validateCertificateChains
+            ).checkResult()
         }
     }
 
@@ -232,11 +236,11 @@ open class WeWorkSenderHelper(
      * @param settings 发送设置,默认为Helper的设置
      * @see [InnerNews]
      */
-    fun sendNews(news: News) {
+    suspend fun sendNews(news: News) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url, preSend(news, defaultSettings).cover(news), validateCertificateChains
-            )
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(), preSend(news, defaultSettings).cover(news), validateCertificateChains
+            ).checkResult()
         }
     }
 
@@ -245,11 +249,11 @@ open class WeWorkSenderHelper(
      * @param settings 发送设置,默认为Helper的设置
      * @see [InnerMpNews]
      */
-    fun sendMpNews(mpNews: MpNews) {
+    suspend fun sendMpNews(mpNews: MpNews) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url, preSend(mpNews, defaultSettings).cover(mpNews), validateCertificateChains
-            )
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(), preSend(mpNews, defaultSettings).cover(mpNews), validateCertificateChains
+            ).checkResult()
         }
     }
 
@@ -259,11 +263,11 @@ open class WeWorkSenderHelper(
      * @param settings 发送设置,默认为Helper的设置
      * @see [Markdown]
      */
-    fun sendMarkdown(markdown: Markdown) {
+    suspend fun sendMarkdown(markdown: Markdown) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url, preSend(markdown, defaultSettings).cover(markdown), validateCertificateChains
-            )
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(), preSend(markdown, defaultSettings).cover(markdown), validateCertificateChains
+            ).checkResult()
         }
     }
 
@@ -272,13 +276,13 @@ open class WeWorkSenderHelper(
      * @param settings 发送设置,默认为Helper的设置
      * @see [InnerTaskCard]
      */
-    fun sendTaskCard(taskCard: TaskCard) {
+    suspend fun sendTaskCard(taskCard: TaskCard) {
         retry {
-            Sender.postJsonResultMap<Unit, PusherExceptions.SendMessageException>(
-                url,
+            SenderKtor.postJsonResultMap<SendResult, PusherExceptions.SendMessageException>(
+                getUrl(),
                 preSend(taskCard, defaultSettings).cover(taskCard),
                 validateCertificateChains
-            )
+            ).checkResult()
         }
     }
 
@@ -289,16 +293,16 @@ open class WeWorkSenderHelper(
      * @param type 文件类型
      * @return 媒体ID
      */
-    private fun uploadMedia(file: ByteArray, filename: String, type: MediaTypeEnum): MediaID {
+    private suspend fun uploadMedia(file: ByteArray, filename: String, type: MediaTypeEnum): MediaID {
         return retry {
             if (file.size > type.maxSize) {
                 throw PusherExceptions.UploadMediaException(-2, null, "File is to large")
             }
             val url = UrlBuilder("https://qyapi.weixin.qq.com/cgi-bin/media/upload")
-                .addQueryParameter("access_token", accessToken)
+                .addQueryParameter("access_token", accessTokenHelper.get())
                 .addQueryParameter("type", type.typeString)
                 .build()
-            return@retry Sender.uploadResultMap<MediaID, PusherExceptions.UploadMediaException>(
+            return@retry SenderKtor.uploadResultMap<MediaID, PusherExceptions.UploadMediaException>(
                 url,
                 file,
                 filename,

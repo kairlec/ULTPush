@@ -13,6 +13,22 @@ object Application {
     private val mainJob = GlobalScope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
         withContext(NonCancellable) {
             runLifecycle()
+            logger.info("Start ULTPush Application Success!")
+            if (!args.contains("--nobanner")) {
+                logger.info(
+                    """
+
+       __  ____  __________             __  
+      / / / / / /_  __/ __ \__  _______/ /_ 
+     / / / / /   / / / /_/ / / / / ___/ __ \
+    / /_/ / /___/ / / ____/ /_/ (__  ) / / /
+    \____/_____/_/ /_/    \__,_/____/_/ /_/
+    
+       https://github.com/kairlec/ULTPush
+
+"""
+                )
+            }
             LOCK.withLock {
                 STOP.await()
             }
@@ -56,13 +72,13 @@ object Application {
                 this.args = args
                 mainJob.start()
                 Runtime.getRuntime().addShutdownHook(Thread({
-                    try {
-                        com.kairlec.ultpush.bind.stop()
-                    } catch (e: Throwable) {
-                        logger.error("StartMain stop exception ", e)
-                    }
-                    logger.info("jvm exit, all service stopped.")
                     runBlocking {
+                        try {
+                            com.kairlec.ultpush.bind.stop()
+                        } catch (e: Throwable) {
+                            logger.error("StartMain stop exception ", e)
+                        }
+                        logger.info("jvm exit, all service stopped.")
                         LOCK.withLock {
                             STOP.signal()
                         }

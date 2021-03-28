@@ -21,6 +21,7 @@ import com.kairlec.ultpush.wework.fromUser
 import com.kairlec.ultpush.wework.message.*
 import com.kairlec.ultpush.wework.toUser
 import com.kairlec.ultpush.wework.withData
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.io.FileNotFoundException
 import javax.inject.Inject
@@ -31,7 +32,7 @@ class WeWorkHttpReceiver @Inject constructor(
     private val configuration: Configuration,
     private val httpService: HttpService,
     @Named("WeWorkUserHelper") private val userHelper: UserHelper
-) : Receiver<WeWorkMessage>(){
+) : Receiver<WeWorkMessage>() {
     companion object : TypeLiteralAble {
         private val logger = LoggerFactory.getLogger(WeWorkHttpReceiver::class.java)
         override val typeLiteral = object : TypeLiteral<Receiver<WeWorkMessage>>() {}
@@ -71,8 +72,8 @@ class WeWorkHttpReceiver @Inject constructor(
         //dependNames = ["WeWorkMessageHandler", "WeWorkUserHelper"],
         //dependClasses = [HttpService::class]
     )
-    fun run() {
-        awaitDependClasses("WeWorkMessageHandler","WeWorkUserHelper")
+    suspend fun run() {
+        awaitDependClasses("WeWorkMessageHandler", "WeWorkUserHelper")
         awaitDependClasses(HttpService::class.java)
         logger.info("reciever hook http service:${httpService.hashCode()}")
         httpService.before {
@@ -87,19 +88,29 @@ class WeWorkHttpReceiver @Inject constructor(
             }
         }
         httpService.request(arrayOf(HttpMethod.GET, HttpMethod.POST), "/wework/text") {
-            val content = getRequestParamMust("content")
-            ULTCore.receiveMessage(Text(content) ftt this, this@WeWorkHttpReceiver, true)
+            withResult {
+                val content = getRequestParamMust("content")
+                ULTCore.receiveMessage(Text(content) ftt this, this@WeWorkHttpReceiver, true)
+            }
         }
         httpService.post("/wework/markdown") {
-            val content = getRequestParamMust("content")
-            ULTCore.receiveMessage(Markdown(content) ftt this, this@WeWorkHttpReceiver, true)
+            withResult {
+                val content = getRequestParamMust("content")
+                ULTCore.receiveMessage(Markdown(content) ftt this, this@WeWorkHttpReceiver, true)
+            }
         }
         httpService.post("/wework/textcard") {
-            val title = getRequestParamMust("title")
-            val description = getRequestParamMust("description")
-            val url = getRequestParamMust("url")
-            val btntxt = getRequestParam("btntxt", "详情")
-            ULTCore.receiveMessage(TextCard(title, description, url, btntxt) ftt this, this@WeWorkHttpReceiver, true)
+            withResult {
+                val title = getRequestParamMust("title")
+                val description = getRequestParamMust("description")
+                val url = getRequestParamMust("url")
+                val btntxt = getRequestParam("btntxt", "详情")
+                ULTCore.receiveMessage(
+                    TextCard(title, description, url, btntxt) ftt this,
+                    this@WeWorkHttpReceiver,
+                    true
+                )
+            }
         }
 
         fun PartFile.getMedia(defaultName: String): Media {
@@ -110,25 +121,33 @@ class WeWorkHttpReceiver @Inject constructor(
             return VideoMedia(RawMedia(filename ?: defaultName, contentAsByteArray))
         }
         httpService.post("/wework/image") {
-            val file = getMultiPartFileMust("file")
-            ULTCore.receiveMessage(Image(file.getMedia("image")) ftt this, this@WeWorkHttpReceiver, true)
+            withResult {
+                val file = getMultiPartFileMust("file")
+                ULTCore.receiveMessage(Image(file.getMedia("image")) ftt this, this@WeWorkHttpReceiver, true)
+            }
         }
         httpService.post("/wework/voice") {
-            val file = getMultiPartFileMust("file")
-            ULTCore.receiveMessage(Voice(file.getMedia("voice")) ftt this, this@WeWorkHttpReceiver, true)
+            withResult {
+                val file = getMultiPartFileMust("file")
+                ULTCore.receiveMessage(Voice(file.getMedia("voice")) ftt this, this@WeWorkHttpReceiver, true)
+            }
         }
         httpService.post("/wework/video") {
-            val title = getRequestParam("title")
-            val description = getRequestParam("description")
-            val file = getMultiPartFileMust("file")
-            ULTCore.receiveMessage(Video(file.getVideoMedia("video").apply {
-                this.description = description
-                this.title = title
-            }) ftt this, this@WeWorkHttpReceiver, true)
+            withResult {
+                val title = getRequestParam("title")
+                val description = getRequestParam("description")
+                val file = getMultiPartFileMust("file")
+                ULTCore.receiveMessage(Video(file.getVideoMedia("video").apply {
+                    this.description = description
+                    this.title = title
+                }) ftt this, this@WeWorkHttpReceiver, true)
+            }
         }
         httpService.post("/wework/file") {
-            val file = getMultiPartFileMust("file")
-            ULTCore.receiveMessage(File(file.getMedia("file")) ftt this, this@WeWorkHttpReceiver, true)
+            withResult {
+                val file = getMultiPartFileMust("file")
+                ULTCore.receiveMessage(File(file.getMedia("file")) ftt this, this@WeWorkHttpReceiver, true)
+            }
         }
         httpService.get("/wework/doc") {
             val lang = this.getRequestParam("lang", "zh_CN")
@@ -150,6 +169,16 @@ class WeWorkHttpReceiver @Inject constructor(
 
     }
 
+    fun HttpContext.withResult(event: suspend () -> ReceiverResult) {
+        runBlocking {
+            val result = event()
+            json(object {
+                val code = if (result.ok) 200 else 500
+                val message = result.message
+                val data = result.data?.stackTraceToString()
+            })
+        }
+    }
 
     override fun authenticate(body: WeWorkMessage): AuthenticateStatus<WeWorkMessage> {
         val result = userHelper.getUser(body.fromUser)?.authPassword(body.withData as String)

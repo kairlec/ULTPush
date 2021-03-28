@@ -8,27 +8,9 @@ import com.kairlec.ultpush.core.pusher.Pusher
 import com.kairlec.ultpush.core.pusher.PusherMsg
 import com.kairlec.ultpush.core.receiver.Receiver
 import com.kairlec.ultpush.core.receiver.ReceiverMsg
-import java.util.*
-import kotlin.collections.HashMap
-
-typealias Event = (Array<out Any?>) -> Unit
-
-private val eventMap = HashMap<String, LinkedList<Event>>()
-
-fun registerEvent(key: String, keyword: String? = null, event: Event) {
-    eventMap[key]?.addLast(event) ?: run {
-        eventMap[key] = LinkedList<Event>().apply { add(event) }
-    }
-}
-
-fun emit(key: String, keyword: String? = null, vararg args: Array<out Any?>) {
-    eventMap[key]?.forEach {
-        it(args)
-    }
-}
 
 object ULTCore {
-    inline fun <reified T : ReceiverMsg> Receiver<T>.receiverMessage(
+    suspend inline fun <reified T : ReceiverMsg> Receiver<T>.receiverMessage(
         receiverMsg: T,
         assignable: Boolean = true
     ): ReceiverResult {
@@ -36,7 +18,7 @@ object ULTCore {
     }
 
     @Suppress("UNCHECKED_CAST")
-    inline fun <reified T : ReceiverMsg> receiveMessage(
+    suspend inline fun <reified T : ReceiverMsg> receiveMessage(
         receiverMsg: T,
         receiver: Receiver<T>,
         assignable: Boolean = true

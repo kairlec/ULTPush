@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version com.kairlec.ultpush.gradle.Versions.kotlin
+    kotlin("plugin.serialization") version com.kairlec.ultpush.gradle.Versions.kotlin
     `java-library`
     `maven-publish`
     signing
@@ -25,6 +26,7 @@ subprojects {
         plugin("signing")
         plugin("maven-publish")
         plugin("java-library")
+        plugin("kotlinx-serialization")
     }
 
     tasks.withType<KotlinCompile> {
@@ -40,10 +42,6 @@ subprojects {
 
     dependencies {
         gradleApi()
-        implementation("com.fasterxml.jackson.core:jackson-databind:${com.kairlec.ultpush.gradle.Versions.jackson}")
-        implementation("com.fasterxml.jackson.core:jackson-core:${com.kairlec.ultpush.gradle.Versions.jackson}")
-        implementation("com.fasterxml.jackson.core:jackson-annotations:${com.kairlec.ultpush.gradle.Versions.jackson}")
-        implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${com.kairlec.ultpush.gradle.Versions.jackson}")
     }
 
     tasks.javadoc {
@@ -82,4 +80,10 @@ tasks.withType<Delete> {
     File("${rootDir}/debug/plugins").list { _, name ->
         name.endsWith(".jar")
     }?.forEach { File("${rootDir}/debug/plugins/${it}").delete() }
+}
+
+buildscript {
+    dependencies {
+        classpath(kotlin("serialization", version = com.kairlec.ultpush.gradle.Versions.kotlin))
+    }
 }

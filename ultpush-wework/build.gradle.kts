@@ -5,20 +5,24 @@ plugins {
 }
 
 dependencies {
-    api("org.slf4j:slf4j-api:${Versions.slf4j}")
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
-    api("org.jetbrains.kotlinx", "kotlinx-coroutines-core", Versions.kotlinCoroutines)
     api(project(":ultpush-core"))
     api(project(":ultpush-http"))
     api(project(":ultpush-configuration"))
     api(project(":ultpush-user"))
+    api("org.slf4j:slf4j-api:${Versions.slf4j}")
+    api("org.jetbrains.kotlinx", "kotlinx-coroutines-core", Versions.kotlinCoroutines)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.kotlinxSerialization}")
     implementation("org.jetbrains.exposed:exposed-core:${Versions.exposed}")
     implementation("org.jetbrains.exposed:exposed-dao:${Versions.exposed}")
     implementation("org.jetbrains.exposed:exposed-jdbc:${Versions.exposed}")
     implementation("org.xerial:sqlite-jdbc:${Versions.sqlite}")
-    testImplementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
+    implementation("io.ktor:ktor-client-core:${Versions.ktor}")
+    implementation("io.ktor:ktor-client-cio:${Versions.ktor}")
+    implementation("io.ktor:ktor-client-serialization:${Versions.ktor}")
     testCompileOnly("org.junit.jupiter:junit-jupiter-api:${Versions.junit}")
+    testImplementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${Versions.junit}")
     testImplementation("org.reflections:reflections:${Versions.reflections}")
 }

@@ -9,7 +9,6 @@ import com.kairlec.ultpush.component.LifecycleException
 import com.kairlec.ultpush.getULTPluginImpl
 import com.kairlec.ultpush.plugin.ULTPluginImpl
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.lang.NullPointerException
@@ -24,7 +23,7 @@ internal val injector: Injector = Guice.createInjector(ULTInternalModule())
 object ULTInjector {
     private val logger: Logger = LoggerFactory.getLogger(javaClass)
 
-    private fun <T : Any> check(
+    private suspend fun <T : Any> check(
         clazz: Class<T>,
         name: String,
         eventNotFound: () -> T,
@@ -34,30 +33,26 @@ object ULTInjector {
         val pluginImpl = getULTPluginImpl[clazz] ?: getULTPluginImpl[name] ?: return eventNotFound()
         val channel: Channel<Boolean> = Channel(1)
         pluginImpl.ifStatus(ULTPluginImpl.ULTPluginImplStatus.RUNNING, {
-            runBlocking { channel.send(true) }
+            channel.send(true)
         }) {
-            runBlocking {
-                when (it) {
-                    ULTPluginImpl.ULTPluginImplStatus.FAILED ->
-                        channel.send(false)
-                    ULTPluginImpl.ULTPluginImplStatus.RUNNING ->
-                        channel.send(true)
-                    else -> {
-                    }
+            when (it) {
+                ULTPluginImpl.ULTPluginImplStatus.FAILED ->
+                    channel.send(false)
+                ULTPluginImpl.ULTPluginImplStatus.RUNNING ->
+                    channel.send(true)
+                else -> {
                 }
             }
         }
-        return runBlocking {
-            val ok = channel.receive()
-            if (ok) {
-                eventOK(pluginImpl, pluginImpl.instance)
-            } else {
-                eventFailed(pluginImpl, pluginImpl.instance)
-            }
+        val ok = channel.receive()
+        return if (ok) {
+            eventOK(pluginImpl, pluginImpl.instance)
+        } else {
+            eventFailed(pluginImpl, pluginImpl.instance)
         }
     }
 
-    private fun <T : Any> checkNullable(
+    private suspend fun <T : Any> checkNullable(
         clazz: Class<T>,
         name: String,
         eventNotFound: () -> T?,
@@ -67,27 +62,23 @@ object ULTInjector {
         val pluginImpl = getULTPluginImpl[clazz] ?: getULTPluginImpl[name] ?: return eventNotFound()
         val channel: Channel<Boolean> = Channel(1)
         pluginImpl.ifStatus(ULTPluginImpl.ULTPluginImplStatus.RUNNING, {
-            runBlocking { channel.send(true) }
+            channel.send(true)
         }) {
-            runBlocking {
-                if (it == ULTPluginImpl.ULTPluginImplStatus.RUNNING) {
-                    channel.send(true)
-                } else {
-                    channel.send(false)
-                }
+            if (it == ULTPluginImpl.ULTPluginImplStatus.RUNNING) {
+                channel.send(true)
+            } else {
+                channel.send(false)
             }
         }
-        return runBlocking {
-            val ok = channel.receive()
-            if (ok) {
-                eventOK(pluginImpl, pluginImpl.instance)
-            } else {
-                eventFailed(pluginImpl, pluginImpl.instance)
-            }
+        val ok = channel.receive()
+        return if (ok) {
+            eventOK(pluginImpl, pluginImpl.instance)
+        } else {
+            eventFailed(pluginImpl, pluginImpl.instance)
         }
     }
 
-    fun <T : Any> getInstance(clazz: Class<T>): T {
+    suspend fun <T : Any> getInstance(clazz: Class<T>): T {
         return check(clazz, clazz.name, { ULTInternalInjector.getInstance(clazz) }, { it as T }) {
             throw LifecycleException(
                 this.clazz.kotlin,
@@ -98,7 +89,7 @@ object ULTInjector {
         }
     }
 
-    fun <T : Any> getInstanceOrNull(clazz: Class<T>): T? {
+    suspend fun <T : Any> getInstanceOrNull(clazz: Class<T>): T? {
         return checkNullable(clazz, clazz.name, { ULTInternalInjector.getInstanceOrNull(clazz) }, { it as T? }) {
             throw LifecycleException(
                 this.clazz.kotlin,
@@ -109,7 +100,7 @@ object ULTInjector {
         }
     }
 
-    fun <T : Any> getGenericInstance(clazz: Class<T>, assignable: Boolean): T {
+    suspend fun <T : Any> getGenericInstance(clazz: Class<T>, assignable: Boolean): T {
         return check(clazz, clazz.name, { ULTInternalInjector.getGenericInstance(clazz, assignable) }, { it as T }) {
             throw LifecycleException(
                 this.clazz.kotlin,
@@ -120,7 +111,7 @@ object ULTInjector {
         }
     }
 
-    fun <T : Any> getGenericInstanceOrNull(clazz: Class<T>, assignable: Boolean): T? {
+    suspend fun <T : Any> getGenericInstanceOrNull(clazz: Class<T>, assignable: Boolean): T? {
         return checkNullable(
             clazz,
             clazz.name,
@@ -136,7 +127,7 @@ object ULTInjector {
     }
 
 
-    fun <T : Any> getGenericInstance(key: Key<T>, assignable: Boolean): T {
+    suspend fun <T : Any> getGenericInstance(key: Key<T>, assignable: Boolean): T {
         val instance = ULTInternalInjector.getGenericInstance(key, assignable)
         return check(instance::class.java as Class<T>, key.typeLiteral.type.typeName, { instance }, { instance }) {
             throw LifecycleException(
@@ -148,7 +139,7 @@ object ULTInjector {
         }
     }
 
-    fun <T : Any> getGenericInstances(key: Key<T>, assignable: Boolean): List<T> {
+    suspend fun <T : Any> getGenericInstances(key: Key<T>, assignable: Boolean): List<T> {
         val instances = ULTInternalInjector.getGenericInstances(key, assignable)
         val validInstances = ArrayList<T>(instances.size)
         instances.forEach { instance ->

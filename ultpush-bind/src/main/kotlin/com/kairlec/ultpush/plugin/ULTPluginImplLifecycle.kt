@@ -10,7 +10,7 @@ internal object ULTPluginImplLifecycle {
         ULTContextManager.impls.values.sorted()
     }
 
-    fun destroy() {
+    suspend fun destroy() {
         components.forEach {
             val status = it.destroy()
             if (!status.status) {
@@ -19,7 +19,7 @@ internal object ULTPluginImplLifecycle {
         }
     }
 
-    fun run() {
+    suspend fun run() {
         try {
             components.forEach {
                 it.load()

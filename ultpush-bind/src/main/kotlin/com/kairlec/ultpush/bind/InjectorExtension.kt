@@ -64,7 +64,7 @@ class TypeLiteralWrapper private constructor(val rawStr: String) {
                         allowSub = false
                         genericClass = result.groupValues[2].split(",").map { TypeLiteralWrapper(it.trim()) }
                     } else {
-                        error("")
+                        error("Parse '$rawStr' failed on Regex:'${genReg.pattern}'")
                     }
                 }
             }

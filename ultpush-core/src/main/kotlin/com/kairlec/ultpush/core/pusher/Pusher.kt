@@ -13,7 +13,7 @@ abstract class Pusher<T : PusherMsg> : Authenticate<T>, Filter<T> {
      */
     open val name: String = "[Pusher]unnamed@${hashCode()}"
 
-    abstract fun push(msg: PusherMsg)
+    abstract suspend fun push(msg: PusherMsg)
 
     override fun allow(content: T) = true
 

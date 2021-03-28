@@ -19,7 +19,7 @@ abstract class ULTAbstractDepend {
         val name: String,
     )
 
-    fun awaitDependClasses(vararg names: NamespaceName): ULTPluginImplStatusChain {
+    suspend fun awaitDependClasses(vararg names: NamespaceName): ULTPluginImplStatusChain {
         names.forEach {
             val impl = currentImpl.getDependImpl(it.namespace, it.name)
             val status = currentImpl.solveDepend(impl)
@@ -30,7 +30,7 @@ abstract class ULTAbstractDepend {
         return currentImpl.success()
     }
 
-    fun awaitDependClasses(vararg names: Pair<String, String>): ULTPluginImplStatusChain {
+    suspend fun awaitDependClasses(vararg names: Pair<String, String>): ULTPluginImplStatusChain {
         names.forEach {
             val impl = currentImpl.getDependImpl(it.first, it.second)
             val status = currentImpl.solveDepend(impl)
@@ -41,7 +41,7 @@ abstract class ULTAbstractDepend {
         return currentImpl.success()
     }
 
-    fun awaitDependClasses(vararg names: String): ULTPluginImplStatusChain {
+    suspend fun awaitDependClasses(vararg names: String): ULTPluginImplStatusChain {
         names.forEach {
             val impl = currentImpl.getDependImpl(it)
             val status = currentImpl.solveDepend(impl)
@@ -52,7 +52,7 @@ abstract class ULTAbstractDepend {
         return currentImpl.success()
     }
 
-    fun awaitDependClasses(vararg classes: Class<*>): ULTPluginImplStatusChain {
+    suspend fun awaitDependClasses(vararg classes: Class<*>): ULTPluginImplStatusChain {
         classes.forEach {
             val impl = currentImpl.getDependImpl(it.kotlin)
             val status = currentImpl.solveDepend(impl)

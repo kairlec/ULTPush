@@ -47,7 +47,7 @@ class WeWorkPusher @Inject constructor(
     }
 
     @ULTInit(dependNames = ["WeWorkUserHelper"])
-    fun init() {
+    suspend fun init() {
         config.apply {
             val enterpriseID = get("enterpriseID")?.stringValue ?: error("[String]enterpriseID(企业ID)不能为空")
             val applicationKey = get("applicationKey")?.stringValue ?: error("[String]applicationkey(应用密钥)不能为空")
@@ -84,7 +84,7 @@ class WeWorkPusher @Inject constructor(
         return AuthenticateSuccess(body)
     }
 
-    override fun push(msg: PusherMsg) {
+    override suspend fun push(msg: PusherMsg) {
         if (msg is WeWorkMessage) {
             when (msg) {
                 is Text -> {

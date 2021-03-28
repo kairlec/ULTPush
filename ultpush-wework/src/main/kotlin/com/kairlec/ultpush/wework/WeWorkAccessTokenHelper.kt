@@ -10,7 +10,4 @@ class WeWorkAccessTokenHelper(corpid: String, corpsecret: String, validateCertif
             .addQueryParameter("corpsecret", corpsecret)
             .build()
 
-    init {
-        update()
-    }
 }

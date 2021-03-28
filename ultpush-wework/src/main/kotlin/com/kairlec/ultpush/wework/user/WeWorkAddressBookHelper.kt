@@ -3,27 +3,60 @@ package com.kairlec.ultpush.wework.user
 import com.kairlec.ultpush.wework.WeWorkAccessTokenHelper
 import com.kairlec.ultpush.wework.WeWorkHelper
 import com.kairlec.ultpush.wework.pusher.PusherExceptions
-import com.kairlec.ultpush.wework.Sender
+import com.kairlec.ultpush.wework.SenderKtor
 import com.kairlec.ultpush.wework.utils.UrlBuilder
+import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
 
 @Suppress("unused", "SpellCheckingInspection")
-open class WeWorkAddressBookHelper(private val validateCertificateChains: Boolean, private val accessTokenHelper: WeWorkAccessTokenHelper) :
-    WeWorkHelper {
+open class WeWorkAddressBookHelper(
+    private val validateCertificateChains: Boolean,
+    private val accessTokenHelper: WeWorkAccessTokenHelper
+) : WeWorkHelper {
+    private val logger = LoggerFactory.getLogger(javaClass)
 
-    private val accessToken: String
-        get() = accessTokenHelper.accessToken
+    @Serializable
+    private data class DepartmentList(
+        val errcode: Int,
+        val errmsg: String,
+        val department: List<Department>
+    )
+
+    @Serializable
+    private data class DetailUserList(
+        val errcode: Int,
+        val errmsg: String,
+        val userlist: List<DetailUser>
+    )
+
+    @Serializable
+    private data class SimpleUserList(
+        val errcode: Int,
+        val errmsg: String,
+        val userlist: List<SimpleUser>
+    )
+
+    @Serializable
+    private data class OpenID(
+        val errcode: Int,
+        val errmsg: String,
+        val openid: String
+    )
 
     /**
      * 获取用户
      * @param userID 用户ID
      * @see InUser
      */
-    fun getUser(userID: String): InUser {
+    suspend fun getUser(userID: String): InUser {
         val url = UrlBuilder("https://qyapi.weixin.qq.com/cgi-bin/user/get")
-                .addQueryParameter("access_token", accessToken)
-                .addQueryParameter("userid", userID)
-                .build()
-        return Sender.getResultMap<InUser, PusherExceptions.AddressBookUserException>(url, validateCertificateChains)
+            .addQueryParameter("access_token", accessTokenHelper.get())
+            .addQueryParameter("userid", userID)
+            .build()
+        return SenderKtor.getResultMap<InUser, PusherExceptions.AddressBookUserException>(
+            url,
+            validateCertificateChains
+        )
     }
 
     /**
@@ -31,16 +64,15 @@ open class WeWorkAddressBookHelper(private val validateCertificateChains: Boolea
      * @param id 部门id
      * @see Department
      */
-    fun getDepartmentList(id: Int? = null): List<Department> {
+    suspend fun getDepartmentList(id: Int? = null): List<Department> {
         val urlBuilder = UrlBuilder("https://qyapi.weixin.qq.com/cgi-bin/department/list")
-                .addQueryParameter("access_token", accessToken)
+            .addQueryParameter("access_token", accessTokenHelper.get())
         id?.let { urlBuilder.addQueryParameter("id", id.toString()) }
         val url = urlBuilder.build()
-        return Sender.getResultMap<List<Department>, PusherExceptions.AddressBookDepartmentListException>(
+        return SenderKtor.getResultMap<DepartmentList, PusherExceptions.AddressBookDepartmentListException>(
             url,
-            validateCertificateChains,
-            "department"
-        )
+            validateCertificateChains
+        ).department
     }
 
     /**
@@ -48,17 +80,17 @@ open class WeWorkAddressBookHelper(private val validateCertificateChains: Boolea
      * @param departmentID 部门id
      * @see SimpleUser
      */
-    fun getUserSimpleList(departmentID: Int, fetchChild: Boolean = true): List<SimpleUser> {
+    suspend fun getUserSimpleList(departmentID: Int, fetchChild: Boolean = true): List<SimpleUser> {
         val url = UrlBuilder("https://qyapi.weixin.qq.com/cgi-bin/user/simplelist")
-                .addQueryParameter("access_token", accessToken)
-                .addQueryParameter("department_id", departmentID.toString())
-                .addQueryParameter("fetch_child", if (fetchChild) "1" else "0")
-                .build()
-        return Sender.getResultMap<List<SimpleUser>, PusherExceptions.AddressBookUserListException>(
+            .addQueryParameter("access_token", accessTokenHelper.get())
+            .addQueryParameter("department_id", departmentID.toString())
+            .addQueryParameter("fetch_child", if (fetchChild) "1" else "0")
+            .build()
+        return SenderKtor.getResultMap<SimpleUserList, PusherExceptions.AddressBookUserListException>(
             url,
-            validateCertificateChains,
-            "userlist"
-        ).onEach {
+            validateCertificateChains
+        ).userlist.onEach {
+            logger.error(it.toString())
             it.openUserID = getOpenUserId(it.userID)
         }
     }
@@ -69,33 +101,39 @@ open class WeWorkAddressBookHelper(private val validateCertificateChains: Boolea
      * @param fetchChild 是否递归获取子用户
      * @see DetailUser
      */
-    fun getUserList(departmentID: Int, fetchChild: Boolean = true): List<DetailUser> {
+    suspend fun getUserList(departmentID: Int, fetchChild: Boolean = true): List<DetailUser> {
         val url = UrlBuilder("https://qyapi.weixin.qq.com/cgi-bin/user/list")
-                .addQueryParameter("access_token", accessToken)
-                .addQueryParameter("department_id", departmentID.toString())
-                .addQueryParameter("fetch_child", if (fetchChild) "1" else "0")
-                .build()
-        return Sender.getResultMap<List<DetailUser>, PusherExceptions.AddressBookUserListException>(
+            .addQueryParameter("access_token", accessTokenHelper.get())
+            .addQueryParameter("department_id", departmentID.toString())
+            .addQueryParameter("fetch_child", if (fetchChild) "1" else "0")
+            .build()
+        return SenderKtor.getResultMap<DetailUserList, PusherExceptions.AddressBookUserListException>(
             url,
-            validateCertificateChains,
-            "userlist"
-        ).onEach {
+            validateCertificateChains
+        ).userlist.onEach {
             it.openUserID = getOpenUserId(it.userID)
         }
     }
+
+    @Serializable
+    private data class UserID(
+        val userid: String
+    )
 
     /**
      * 根据用户userid,获取其openUserId
      * @param userID UserId
      * @return OpenUserId
      */
-    private fun getOpenUserId(userID: String): String {
+    private suspend fun getOpenUserId(userID: String): String {
         val url = UrlBuilder("https://qyapi.weixin.qq.com/cgi-bin/user/convert_to_openid")
-                .addQueryParameter("access_token", accessToken)
-                .build()
-        return Sender.postJsonResultMap<String, PusherExceptions.AddressBookUserListException>(url, object {
-            val userid = userID
-        }, validateCertificateChains, "openid")
+            .addQueryParameter("access_token", accessTokenHelper.get())
+            .build()
+        return SenderKtor.postJsonResultMap<OpenID, PusherExceptions.AddressBookUserListException>(
+            url,
+            UserID(userID),
+            validateCertificateChains
+        ).openid
     }
 
 }

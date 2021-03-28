@@ -12,8 +12,8 @@ sealed class PusherExceptions {
     class AccessTokenException(
         override val code: Int,
         cause: Throwable? = null,
-        message: String = "Failed to post access token"
-    ) : PusherException(code, cause, message)
+        message: String? = null
+    ) : PusherException(code, cause, message ?: "Failed to post access token")
 
     /**
      * 发送消息异常
@@ -24,8 +24,8 @@ sealed class PusherExceptions {
     class SendMessageException(
         override val code: Int,
         cause: Throwable? = null,
-        message: String = "Failed to post message to send"
-    ) : PusherException(code, cause, message)
+        message: String? = null
+    ) : PusherException(code, cause, message ?: "Failed to post message to send")
 
     /**
      * 通讯录列出异常
@@ -36,8 +36,8 @@ sealed class PusherExceptions {
     class AddressBookDepartmentListException(
         override val code: Int,
         cause: Throwable? = null,
-        message: String = "Failed to post department list"
-    ) : PusherException(code, cause, message)
+        message: String? = null
+    ) : PusherException(code, cause, message ?: "Failed to post department list")
 
     /**
      * 通讯录用户列表获取异常
@@ -48,8 +48,8 @@ sealed class PusherExceptions {
     class AddressBookUserListException(
         override val code: Int,
         cause: Throwable? = null,
-        message: String = "Failed to post user list"
-    ) : PusherException(code, cause, message)
+        message: String? = null
+    ) : PusherException(code, cause, message ?: "Failed to post user list")
 
     /**
      * 通讯录用户获取异常
@@ -60,8 +60,8 @@ sealed class PusherExceptions {
     class AddressBookUserException(
         override val code: Int,
         cause: Throwable? = null,
-        message: String = "Failed to post user"
-    ) : PusherException(code, cause, message)
+        message: String? = null
+    ) : PusherException(code, cause, message ?: "Failed to post user")
 
     /**
      * 通讯录标签异常
@@ -72,8 +72,8 @@ sealed class PusherExceptions {
     class AddressBookTagException(
         override val code: Int,
         cause: Throwable? = null,
-        message: String = "Failed to post tag"
-    ) : PusherException(code, cause, message)
+        message: String? = null
+    ) : PusherException(code, cause, message ?: "Failed to post tag")
 
     /**
      * 媒体上传异常
@@ -84,8 +84,8 @@ sealed class PusherExceptions {
     class UploadMediaException(
         override val code: Int,
         cause: Throwable? = null,
-        message: String = "Failed to upload media file"
-    ) : PusherException(code, cause, message)
+        message: String? = null
+    ) : PusherException(code, cause, message ?: "Failed to upload media file")
 
     /**
      * 重试异常
@@ -96,6 +96,6 @@ sealed class PusherExceptions {
     class RetryException(
         override val code: Int,
         cause: Throwable? = null,
-        message: String = "Retries exceeded"
-    ) : PusherException(code, cause, message)
+        message: String? = null
+    ) : PusherException(code, cause, message ?: "Retries exceeded")
 }
