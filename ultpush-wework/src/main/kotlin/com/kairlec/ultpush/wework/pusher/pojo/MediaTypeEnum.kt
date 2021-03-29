@@ -26,6 +26,11 @@ enum class MediaTypeEnum(val typeString: String, val maxSize: Long, val allowExt
      * 普通文件（file）：20MB
      */
     FILE("file", 20971520),
+
+    /**
+     * MpNews的图文消息的缩略图,也是和Image走的一样的通道
+     */
+    MPNEWS("image", 2097150, listOf("JPG", "PNG"))
     ;
 
     companion object {
@@ -35,6 +40,7 @@ enum class MediaTypeEnum(val typeString: String, val maxSize: Long, val allowExt
                 "voice" -> VOICE
                 "video" -> VIDEO
                 "file" -> FILE
+                "mpnews" -> MPNEWS
                 else -> null
             }
         }

@@ -13,7 +13,6 @@ object Application {
     private val mainJob = GlobalScope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
         withContext(NonCancellable) {
             runLifecycle()
-            logger.info("Start ULTPush Application Success!")
             if (!args.contains("--nobanner")) {
                 logger.info(
                     """
@@ -29,6 +28,7 @@ object Application {
 """
                 )
             }
+            logger.info("[${pid()}]Start ULTPush Application Success!")
             LOCK.withLock {
                 STOP.await()
             }
@@ -70,6 +70,7 @@ object Application {
         applicationStartMutex.withLock {
             if (!started) {
                 this.args = args
+                logger.info("ready for start")
                 mainJob.start()
                 Runtime.getRuntime().addShutdownHook(Thread({
                     runBlocking {

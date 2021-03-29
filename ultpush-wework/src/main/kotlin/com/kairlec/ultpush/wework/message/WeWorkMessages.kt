@@ -347,6 +347,19 @@ data class MpNews(
         this.digest = digest
     })))
 
+    constructor(
+        title: String,
+        rawMedia: RawMedia,
+        content: String,
+        author: String? = null,
+        contentSourceUrl: String? = null,
+        digest: String? = null,
+    ) : this(InnerMpNews(arrayOf(MpNewsArticles(title, rawMedia, content).apply {
+        this.author = author
+        this.content_source_url = contentSourceUrl
+        this.digest = digest
+    })))
+
     override val content: Any
         get() = mpnews
 

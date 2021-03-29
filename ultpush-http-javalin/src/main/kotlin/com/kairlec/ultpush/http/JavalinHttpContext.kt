@@ -53,6 +53,7 @@ class JavalinHttpContext(private val context: Context, override var scope: HttpS
         return context.queryParams(key)
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T> getBody(clazz: Class<T>): T {
         return when {
             ByteArray::class.java.isAssignableFrom(clazz) -> context.bodyAsBytes() as T

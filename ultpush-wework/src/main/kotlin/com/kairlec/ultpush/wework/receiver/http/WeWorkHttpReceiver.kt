@@ -75,7 +75,6 @@ class WeWorkHttpReceiver @Inject constructor(
     suspend fun run() {
         awaitDependClasses("WeWorkMessageHandler", "WeWorkUserHelper")
         awaitDependClasses(HttpService::class.java)
-        logger.info("reciever hook http service:${httpService.hashCode()}")
         httpService.before {
             this.getRequestParam("from")?.let {
                 this.setRequestAttribute("from", it)

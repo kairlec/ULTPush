@@ -1,9 +1,0 @@
-{
-  "namespace": "ultpush-http-javalin-module",
-  "package": [
-    "com.kairlec.ultpush.http"
-  ],
-  "name": "ULTPush-Http-Javalin-Module",
-  "version": "v1",
-  "versionCode": 1
-}

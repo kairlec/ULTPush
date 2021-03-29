@@ -54,6 +54,7 @@ interface IDuplicateCheckAble {
 interface IRawMedia {
     var isRawData: Boolean
     val rawMedia: RawMedia?
+    fun uploaded(media_id: String)
 }
 
 class RawMedia(
@@ -77,7 +78,7 @@ open class Media : IRawMedia {
     @Transient
     final override var rawMedia: RawMedia? = null
 
-    fun uploaded(media_id: String) {
+    override fun uploaded(media_id: String) {
         this.isRawData = false
         this.media_id = media_id
     }
@@ -155,19 +156,23 @@ data class NewsArticles(
 @Serializable
 data class InnerNews(
     val articles: Array<NewsArticles>
-)
+) : Iterable<NewsArticles> {
+    override fun iterator(): Iterator<NewsArticles> {
+        return articles.iterator()
+    }
+}
 
 /**
  * @param title 标题，不超过128个字节，超过会自动截断（支持id转译）
  * @param thumb_media_id 图文消息缩略图的media_id, 可以通过素材管理接口获得。此处thumb_media_id即上传接口返回的media_id
  * @param content 图文消息的内容，支持html标签，不超过666 K个字节（支持id转译）
  */
+@Suppress("DataClassPrivateConstructor")
 @Serializable
-data class MpNewsArticles(
+data class MpNewsArticles private constructor(
     val title: String,
-    val thumb_media_id: String,
     val content: String,
-) {
+) : IRawMedia {
     /**
      * 图文消息的作者，不超过64个字节
      */
@@ -182,6 +187,28 @@ data class MpNewsArticles(
      * 图文消息的描述，不超过512个字节，超过会自动截断（支持id转译）
      */
     var digest: String? = null
+
+    var thumb_media_id: String? = null
+
+    override fun uploaded(media_id: String) {
+        this.isRawData = false
+        this.thumb_media_id = media_id
+    }
+
+    constructor(title: String, rawMedia: RawMedia, content: String) : this(title, content) {
+        this.rawMedia = rawMedia
+        this.isRawData = true
+    }
+
+    constructor(title: String, thumb_media_id: String, content: String) : this(title, content) {
+        this.thumb_media_id = thumb_media_id
+    }
+
+    @Transient
+    override var isRawData: Boolean = false
+
+    @Transient
+    override var rawMedia: RawMedia? = null
 }
 
 /**
@@ -190,7 +217,11 @@ data class MpNewsArticles(
 @Serializable
 data class InnerMpNews(
     val articles: Array<MpNewsArticles>
-)
+) : Iterable<MpNewsArticles> {
+    override fun iterator(): Iterator<MpNewsArticles> {
+        return articles.iterator()
+    }
+}
 
 
 /**

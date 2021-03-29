@@ -2,7 +2,6 @@
 
 package com.kairlec.ultpush.bind
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.inject.AbstractModule
 import com.google.inject.Scopes
 import com.google.inject.TypeLiteral
@@ -30,7 +29,6 @@ import kotlin.reflect.full.*
  */
 class ULTInternalModule : AbstractModule() {
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val objectMapper = jacksonObjectMapper()
 
     private val interfaceMap = HashMap<String, String>()
 
@@ -135,21 +133,20 @@ class ULTInternalModule : AbstractModule() {
 
     override fun configure() {
         // 当使用-cp来指定加载插件的时候,所有的资源将都被加载进ClassPath
-        ClasspathHelper.contextClassLoader().getResources("ultpush-plugin.json").asIterator().forEach { url ->
+        ClasspathHelper.contextClassLoader().getResources("ultpush-plugin.properties").asIterator().forEach { url ->
             try {
                 val content = url.readText()
-                val pluginInfo = objectMapper.readTree(content)
-                val pluginNamespace = pluginInfo["namespace"]?.textValue()
-                    ?: throw UnsupportedOperationException("Cannot access plugin namespace in content:${content}")
-                val pluginName = pluginInfo["name"]?.textValue()
-                    ?: throw UnsupportedOperationException("Cannot access plugin name in content:${content}")
-                val `package` = pluginInfo["package"]
-                    ?: throw UnsupportedOperationException("Cannot access plugin package in content:${content}")
-                val pluginScanPackages = if (`package`.isArray) {
-                    `package`.map { it.textValue() }
-                } else {
-                    listOf<String>(`package`.asText())
+                val pluginProperties = Properties()
+                url.openStream().use {
+                    pluginProperties.load(it)
                 }
+                //val pluginInfo = objectMapper.readTree(content)
+                val pluginNamespace = pluginProperties.getProperty("namespace")
+                    ?: throw UnsupportedOperationException("Cannot access plugin namespace in content:${content}")
+                val pluginName = pluginProperties.getProperty("name")
+                    ?: throw UnsupportedOperationException("Cannot access plugin name in content:${content}")
+                val pluginScanPackages = pluginProperties.getProperty("package")?.split(',')
+                    ?: throw UnsupportedOperationException("Cannot access plugin package in content:${content}")
                 val builder = ConfigurationBuilder()
                 pluginScanPackages.map { packageName ->
                     builder.addUrls(
@@ -178,8 +175,17 @@ class ULTInternalModule : AbstractModule() {
                 val plugin = ULTContextManager.submit(
                     pluginNamespace,
                     pluginName,
-                    pluginInfo["version"]?.textValue(),
-                    pluginInfo["versionCode"]?.intValue(),
+                    pluginProperties.getProperty("version"),
+                    pluginProperties["versionCode"]?.let {
+                        when (it) {
+                            is Int ->
+                                it
+                            is String ->
+                                it.toIntOrNull()
+                            else ->
+                                null
+                        }
+                    },
                     pluginScanPackages.toMutableList(),
                     mutableListOf(ClasspathHelper.contextClassLoader(), ClasspathHelper.staticClassLoader())
                 )
@@ -225,40 +231,42 @@ class ULTInternalModule : AbstractModule() {
         try {
             logger.info("Loading plugin file:${pathToJar.nameWithoutExtension} ...")
             val jarFile = JarFile(pathToJar)
-            val pluginJson = jarFile.getJarEntry("ultpush-plugin.json")
+            val pluginJson = jarFile.getJarEntry("ultpush-plugin.properties")
                 ?: run {
-                    error("Cannot access 'ultpush-plugin.json' in file:${pathToJar.nameWithoutExtension}")
+                    error("Cannot access 'ultpush-plugin.properties' in file:${pathToJar.nameWithoutExtension}")
                 }
-            val pluginText = jarFile.getInputStream(pluginJson).use {
+            val pluginProperties = Properties()
+            jarFile.getInputStream(pluginJson).use {
                 it.reader(Charsets.UTF_8).use { isr ->
-                    isr.readText()
+                    pluginProperties.load(isr)
                 }
             }
             val fileUrl = pathToJar.toURI().toURL()
             val child = URLClassLoader(arrayOf(fileUrl), Thread.currentThread().contextClassLoader)
 
-            val pluginInfo = objectMapper.readTree(pluginText)
+            //val pluginInfo = objectMapper.readTree(pluginText)
 
-            val pluginNamespace = pluginInfo["namespace"]?.textValue()
+            val pluginNamespace = pluginProperties.getProperty("namespace")
                 ?: error("Cannot access plugin namespace in plugin info:${pathToJar.nameWithoutExtension}")
-            val pluginName = pluginInfo["name"]?.textValue()
+            val pluginName = pluginProperties.getProperty("name")
                 ?: run {
                     logger.warn("[file:${pathToJar.nameWithoutExtension}]pluginInfo don't exist name,use the file name as plugin name")
                     pathToJar.nameWithoutExtension
                 }
-            val `package` = pluginInfo["package"]
+            val pluginScanPackages = pluginProperties.getProperty("package")?.split(',')
                 ?: throw UnsupportedOperationException("${pluginName.currentLocation}Cannot access plugin package in plugin info")
-            val pluginScanPackages = if (`package`.isArray) {
-                `package`.map { it.textValue() }.toMutableList()
-            } else {
-                mutableListOf<String>(`package`.asText())
-            }
             val plugin = ULTContextManager.submit(
                 pluginNamespace,
                 pluginName,
-                pluginInfo["version"]?.textValue(),
-                pluginInfo["versionCode"]?.intValue(),
-                pluginScanPackages,
+                pluginProperties.getProperty("version"),
+                pluginProperties["versionCode"]?.let {
+                    when (it) {
+                        is Int -> it
+                        is String -> it.toIntOrNull()
+                        else -> null
+                    }
+                },
+                pluginScanPackages.toMutableList(),
                 mutableListOf(child)
             )
             val packageDirName = pluginScanPackages.map { it.replace(".", "/") }

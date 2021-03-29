@@ -33,6 +33,12 @@ tasks.withType<Test> {
     val files = File("${rootDir}/debug/plugins").list { _, name ->
         name.endsWith(".jar")
     }?.map { "${rootDir}/debug/plugins/${it}" } ?: ArrayList()
+    if (files.isEmpty()) {
+        System.err.println("Can't found any ULTPlugin")
+    }
+    files.forEach {
+        println("apply ULTPlugin:${it}")
+    }
     classpath += files(files.toTypedArray())
 }
 //tasks.withType<Jar> {

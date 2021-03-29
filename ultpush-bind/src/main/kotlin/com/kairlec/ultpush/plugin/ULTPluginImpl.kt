@@ -14,6 +14,7 @@ import com.kairlec.ultpush.component.lifecycle.*
 import com.kairlec.ultpush.util.Event
 import com.kairlec.ultpush.util.EventDelegate
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -47,7 +48,12 @@ class ULTPluginImpl(
     }
 
     var status: ULTPluginImplStatus = ULTPluginImplStatus.READY
-        private set
+        private set(value) {
+            field = value
+            GlobalScope.launch {
+                statusChangeEvent(value)
+            }
+        }
 
     //由状态改变函数入口锁住,status的锁就不必要了
 //    var status by object {

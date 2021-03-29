@@ -8,10 +8,13 @@ import com.kairlec.ultpush.wework.pusher.pojo.MediaID
 import com.kairlec.ultpush.wework.pusher.pojo.MediaTypeEnum
 import com.kairlec.ultpush.wework.utils.UrlBuilder
 import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
+import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.createType
 import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberProperties
 
 
@@ -20,8 +23,8 @@ open class WeWorkSenderHelper(
     private val validateCertificateChains: Boolean,
     private val accessTokenHelper: WeWorkAccessTokenHelper,
     private val agentid: Int
-) :
-    WeWorkHelper {
+) : WeWorkHelper {
+
     /**
      * Sender的附带设置,这个设置有默认,同时也可以另外传入
      * @param toUser [ToAble.touser]
@@ -116,18 +119,56 @@ open class WeWorkSenderHelper(
         }
     }
 
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     @Suppress("UNCHECKED_CAST")
-    private suspend fun preSend(msg: WeWorkMessage, settings: SenderSettings): SenderSettings {
-        MediaTypeEnum.parseMedia(msg.msgtype)?.let {
-            msg::class.memberProperties.find { it.returnType == Media::class.createType() }?.let {
-                (it as KProperty1<WeWorkMessage, Media>).get(msg)
-            }?.run {
+    private suspend fun <T : Any> preUploadMedia(obj: T, mediaTypeEnum: MediaTypeEnum) {
+        logger.info("pre:${obj::class.qualifiedName}")
+        if (obj is IRawMedia) {
+            logger.info("upload obj")
+            obj.run {
                 if (isRawData) {
                     val raw = rawMedia!!
-                    val media = uploadMedia(raw.mediaData, raw.mediaName, it)
+                    val media = uploadMedia(raw.mediaData, raw.mediaName, mediaTypeEnum)
                     uploaded(media.mediaID)
                 }
             }
+            return
+        }
+        obj::class.memberProperties.forEach {
+            val clazz = it.returnType.classifier as KClass<*>
+            logger.info("in:${clazz.qualifiedName}")
+            when {
+                clazz.isSubclassOf(IRawMedia::class) -> {
+                    (it as KProperty1<T, IRawMedia>).get(obj).run {
+                        if (isRawData) {
+                            val raw = rawMedia!!
+                            val media = uploadMedia(raw.mediaData, raw.mediaName, mediaTypeEnum)
+                            uploaded(media.mediaID)
+                        }
+                    }
+                }
+                clazz.isSubclassOf(Iterable::class) -> {
+                    (it as KProperty1<T, Iterable<*>>).get(obj).run {
+                        this.forEach { subObj ->
+                            subObj?.run { preUploadMedia(this, mediaTypeEnum) }
+                        }
+                    }
+                }
+                clazz.java.isArray -> {
+                    (it as KProperty1<T, Array<*>>).get(obj).run {
+                        this.forEach { subObj ->
+                            subObj?.run { preUploadMedia(this, mediaTypeEnum) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun preSend(msg: WeWorkMessage, settings: SenderSettings): SenderSettings {
+        MediaTypeEnum.parseMedia(msg.msgtype)?.let {
+            preUploadMedia(msg, it)
         }
         if (msg.toUser.isNotBlank()) {
             settings.toUser = msg.toUser
@@ -140,7 +181,9 @@ open class WeWorkSenderHelper(
         val errcode: Int,
         val errmsg: String
     ) {
+        private val logger = LoggerFactory.getLogger(javaClass)
         fun checkResult() {
+            logger.info("code=${errcode} Result=${errmsg}")
             if (errcode != 0) {
                 throw PusherExceptions.SendMessageException(errcode, null, errmsg)
             }
@@ -294,6 +337,7 @@ open class WeWorkSenderHelper(
      * @return 媒体ID
      */
     private suspend fun uploadMedia(file: ByteArray, filename: String, type: MediaTypeEnum): MediaID {
+        logger.info("ready to upload $filename by ${type.typeString}")
         return retry {
             if (file.size > type.maxSize) {
                 throw PusherExceptions.UploadMediaException(-2, null, "File is to large")

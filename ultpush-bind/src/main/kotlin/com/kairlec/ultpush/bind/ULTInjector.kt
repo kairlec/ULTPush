@@ -33,13 +33,18 @@ object ULTInjector {
         val pluginImpl = getULTPluginImpl[clazz] ?: getULTPluginImpl[name] ?: return eventNotFound()
         val channel: Channel<Boolean> = Channel(1)
         pluginImpl.ifStatus(ULTPluginImpl.ULTPluginImplStatus.RUNNING, {
+            logger.info("[$name][${clazz.name}]checked running")
             channel.send(true)
         }) {
             when (it) {
-                ULTPluginImpl.ULTPluginImplStatus.FAILED ->
+                ULTPluginImpl.ULTPluginImplStatus.FAILED -> {
+                    logger.info("[$name][${clazz.name}]waited failed")
                     channel.send(false)
-                ULTPluginImpl.ULTPluginImplStatus.RUNNING ->
+                }
+                ULTPluginImpl.ULTPluginImplStatus.RUNNING -> {
+                    logger.info("[$name][${clazz.name}]waited running")
                     channel.send(true)
+                }
                 else -> {
                 }
             }

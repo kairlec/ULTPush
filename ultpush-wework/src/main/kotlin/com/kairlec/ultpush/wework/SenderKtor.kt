@@ -159,11 +159,13 @@ object SenderKtor {
     })
 
     private val httpClient = HttpClient(CIO) {
+        developmentMode = true
         install(JsonFeature) {
             serializer = kotlinxJsonSerializer
         }
     }
     private val httpClientNoValidateCertificateChains = HttpClient(CIO) {
+        developmentMode = true
         install(JsonFeature) {
             serializer = kotlinxJsonSerializer
         }

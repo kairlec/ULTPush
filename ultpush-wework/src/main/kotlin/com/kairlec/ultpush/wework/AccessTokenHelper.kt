@@ -8,15 +8,6 @@ import java.time.Duration
 import java.time.LocalDateTime
 import kotlin.properties.Delegates
 
-
-@Serializable
-data class AccessToken(
-    val errcode: Int,
-    val errmsg: String,
-    val access_token: String,
-    val expires_in: Long
-)
-
 /**
  * Token鉴权辅助器
  */
@@ -47,12 +38,20 @@ abstract class AccessTokenHelper(protected open val validateCertificateChains: B
      */
     protected abstract val url: String
 
+    @Serializable
+    private data class AccessToken(
+        val errcode: Int,
+        val errmsg: String,
+        val access_token: String,
+        val expires_in: Long
+    )
+
     /**
      * 更新token
      */
     suspend fun update() {
         updateLock.withLock {
-            val accessToken:AccessToken = try {
+            val accessToken: AccessToken = try {
                 SenderKtor.get(url, validateCertificateChains)
             } catch (e: Exception) {
                 throw PusherExceptions.AccessTokenException(-1, e)
@@ -74,6 +73,7 @@ abstract class AccessTokenHelper(protected open val validateCertificateChains: B
      * 获取token,若即将过期,则更新token后返回
      */
     suspend fun get(): String {
+        // 不包裹进去因为内部含有update会导致死锁,更新完毕直接放开锁因为值已经确定,不锁住也不会有错误
         updateLock.withLock { }
         if (!this::expiredTime.isInitialized) {
             update()
@@ -85,16 +85,4 @@ abstract class AccessTokenHelper(protected open val validateCertificateChains: B
         }
         return token
     }
-
-//    val accessToken: String
-//        get() {
-//            return runBlocking {
-//                updateLock.withLock { }
-//                val duration = Duration.between(LocalDateTime.now(), expiredTime)
-//                if (duration.toMinutes() < 5) {
-//                    update()
-//                }
-//                token
-//            }
-//        }
 }

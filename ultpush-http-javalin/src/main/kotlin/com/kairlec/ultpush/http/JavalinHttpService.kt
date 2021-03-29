@@ -56,6 +56,7 @@ class JavalinHttpService @Inject constructor(
         }.start(host, port)
     }
 
+    @Suppress("UNCHECKED_CAST")
     override fun <T : Throwable> exception(exceptionClass: Class<T>, event: HttpContext.(T) -> Unit): HttpService {
         if (Exception::class.java.isAssignableFrom(exceptionClass)) {
             app.exception(exceptionClass as Class<out Exception>) { exception, ctx ->

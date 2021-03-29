@@ -24,8 +24,7 @@ import org.slf4j.LoggerFactory
 
 @ULTImpl("WeWorkPusher", false)
 class WeWorkPusher @Inject constructor(
-    private val configuration: Configuration,
-    @Named("WeWorkUserHelper") private val userHelper: UserHelper
+    private val configuration: Configuration
 ) : Pusher<WeWorkMessage>() {
     companion object : TypeLiteralAble {
         override val typeLiteral = object : TypeLiteral<Pusher<WeWorkMessage>>() {}
