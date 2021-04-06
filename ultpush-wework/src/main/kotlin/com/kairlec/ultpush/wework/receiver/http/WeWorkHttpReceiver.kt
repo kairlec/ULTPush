@@ -1,8 +1,7 @@
 package com.kairlec.ultpush.wework.receiver.http
 
 import com.google.inject.TypeLiteral
-import com.kairlec.ultpush.ULTAbstractDepend
-import com.kairlec.ultpush.bind.TypeLiteralAble
+import com.kairlec.ultpush.bind.TypeStrict
 import com.kairlec.ultpush.bind.ULTImpl
 import com.kairlec.ultpush.component.lifecycle.ULTLoad
 import com.kairlec.ultpush.component.lifecycle.ULTRun
@@ -33,9 +32,9 @@ class WeWorkHttpReceiver @Inject constructor(
     private val httpService: HttpService,
     @Named("WeWorkUserHelper") private val userHelper: UserHelper
 ) : Receiver<WeWorkMessage>() {
-    companion object : TypeLiteralAble {
+    companion object : TypeStrict {
         private val logger = LoggerFactory.getLogger(WeWorkHttpReceiver::class.java)
-        override val typeLiteral = object : TypeLiteral<Receiver<WeWorkMessage>>() {}
+        override val type = object : TypeLiteral<Receiver<WeWorkMessage>>() {}
     }
 
     private lateinit var config: Config

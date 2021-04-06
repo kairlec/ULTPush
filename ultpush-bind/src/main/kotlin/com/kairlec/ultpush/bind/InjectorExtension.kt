@@ -3,77 +3,76 @@ package com.kairlec.ultpush.bind
 import com.google.inject.Injector
 import com.google.inject.Key
 import com.google.inject.TypeLiteral
+import java.lang.reflect.GenericArrayType
+import java.lang.reflect.ParameterizedType
+import java.lang.reflect.Type
+import java.lang.reflect.TypeVariable
 
 val TypeLiteral<*>.wrapper get() = TypeLiteralWrapper(this)
 
 @Suppress("UNCHECKED_CAST")
 fun <T> Injector.getGenericInstance(key: Key<T>, assignable: Boolean): T {
-    return bindings.keys.single { it.typeLiteral.wrapper.canCastTo(key.typeLiteral.wrapper, assignable) }
+    return bindings.keys.single { it.typeLiteral.wrapper.castAble(key.typeLiteral.wrapper, assignable) }
         ?.let { getInstance(it) as T }
         ?: throw TypeCastException(key.typeLiteral.type.typeName)
 }
 
 @Suppress("UNCHECKED_CAST")
 fun <T> Injector.getGenericInstances(key: Key<T>, assignable: Boolean): List<T> {
-    return bindings.keys.filter { it.typeLiteral.wrapper.canCastTo(key.typeLiteral.wrapper, assignable) }
+    return bindings.keys.filter { it.typeLiteral.wrapper.castAble(key.typeLiteral.wrapper, assignable) }
         .map { getInstance(it) as T }
 }
 
+class TypeLiteralWrapperException(
+    val type: Type,
+    override val message: String,
+    override val cause: Throwable? = null
+) : RuntimeException(message, cause)
 
-class TypeLiteralWrapper private constructor(val rawStr: String) {
-    constructor(type: TypeLiteral<*>) : this(type.type.typeName)
+class TypeLiteralWrapper private constructor(val type: Type) {
+    constructor(type: TypeLiteral<*>) : this(type.type)
 
-    val clazz: Class<*>
-    val allowSub: Boolean
-    val genericClass: List<TypeLiteralWrapper>
+    private val clazz: Class<*>
+    private val genericClass: List<TypeLiteralWrapper>
 
-    fun canCastTo(other: TypeLiteralWrapper, assignable: Boolean): Boolean {
-        if (genericClass.size != other.genericClass.size) {
+    fun castAble(other: TypeLiteralWrapper, assignable: Boolean): Boolean {
+        val result = if (assignable) {
+            other.clazz.isAssignableFrom(this.clazz)
+        } else {
+            this.clazz == other.genericClass
+        }
+        if (!result) {
             return false
         }
         for (i in genericClass.indices) {
-            if (!genericClass[i].canCastTo(other.genericClass[i], assignable)) {
+            if (!genericClass[i].castAble(other.genericClass[i], assignable)) {
+                println("${genericClass[i].type.typeName} cannot cast to ${other.genericClass[i].type.typeName}")
                 return false
             }
         }
-        return clazz == other.clazz || (other.clazz.isAssignableFrom(clazz) && (assignable || other.allowSub))
+        return true
     }
 
     init {
-        if (rawStr == "?") {
-            clazz = Any::class.java
-            allowSub = true
-            genericClass = emptyList()
-        } else {
-            var result: MatchResult?
-            result = extendsReg.matchEntire(rawStr)
-            if (result != null) {
-                clazz = Class.forName(result.groupValues[1])
-                allowSub = true
+        when (type) {
+            is Class<*> -> {
+                clazz = type
                 genericClass = emptyList()
-            } else {
-                result = superReg.matchEntire(rawStr)
-                if (result != null) {
-                    clazz = Class.forName(result.groupValues[1])
-                    allowSub = false
-                    genericClass = emptyList()
-                } else {
-                    result = genReg.matchEntire(rawStr)
-                    if (result != null) {
-                        clazz = Class.forName(result.groupValues[1])
-                        allowSub = false
-                        genericClass = result.groupValues[2].split(",").map { TypeLiteralWrapper(it.trim()) }
-                    } else {
-                        error("Parse '$rawStr' failed on Regex:'${genReg.pattern}'")
-                    }
-                }
+            }
+            is TypeVariable<*> -> {
+                throw TypeLiteralWrapperException(type, "Cannot access unknown type variable")
+            }
+            is GenericArrayType -> {
+                clazz = Array::class.java
+                genericClass = listOf(TypeLiteralWrapper(type.genericComponentType))
+            }
+            is ParameterizedType -> {
+                clazz = type.rawType as Class<*>
+                genericClass = type.actualTypeArguments.map { TypeLiteralWrapper(it) }
+            }
+            else -> {
+                throw TypeLiteralWrapperException(type, "no support type")
             }
         }
-    }
-
-    companion object {
-        val superReg = """^([^<]+)$""".toRegex()
-        val genReg = """^([^<]+)<(.*)>$""".toRegex()
-        val extendsReg = """^\? extends (.*)$""".toRegex()
     }
 }

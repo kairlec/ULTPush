@@ -11,6 +11,7 @@ object Versions {
     const val junit = "5.7.1"
     const val javalin = "3.13.4"
     const val guice = "5.0.1"
+    const val guava = "30.1.1-jre"
     const val servlet = "4.0.1"
     const val ktor = "1.5.2"
     const val kotlinxSerialization="1.1.0"

@@ -9,9 +9,12 @@ dependencies {
     api(kotlin("reflect"))
     api(project(":ultpush-configuration"))
     api(project(":ultpush-bind"))
+    implementation("com.fasterxml.jackson.core:jackson-databind:${Versions.jackson}")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:${Versions.jackson}")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${Versions.jackson}")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${Versions.jackson}")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${Versions.jackson}")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${Versions.jackson}")
 }
 
 tasks.withType<Jar> {

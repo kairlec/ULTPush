@@ -61,8 +61,8 @@ class ULTInternalModule : AbstractModule() {
 
             impl.kotlin.run {
                 companionObjectInstance?.let { ccui ->
-                    if (ccui is TypeLiteralAble) {
-                        tpl = ccui.typeLiteral as TypeLiteral<Any>?
+                    if (ccui is TypeStrict) {
+                        tpl = ccui.type as TypeLiteral<Any>?
                     }
                 }
             }

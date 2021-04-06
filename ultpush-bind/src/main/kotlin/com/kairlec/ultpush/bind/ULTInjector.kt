@@ -5,6 +5,7 @@ package com.kairlec.ultpush.bind
 import com.google.inject.Guice
 import com.google.inject.Injector
 import com.google.inject.Key
+import com.google.inject.TypeLiteral
 import com.kairlec.ultpush.component.LifecycleException
 import com.kairlec.ultpush.getULTPluginImpl
 import com.kairlec.ultpush.plugin.ULTPluginImpl
@@ -181,9 +182,9 @@ internal object ULTInternalInjector {
 
     fun <T : Any> getInstance(clazz: Class<T>): T {
         clazz.kotlin.companionObjectInstance?.let {
-            if (it is TypeLiteralAble) {
-                if (it.typeLiteral != null) {
-                    val target = getGenericInstanceOrNull(Key.get(it.typeLiteral), false) as? T
+            if (it is TypeLiteral<out Any>) {
+                if (it.type != null) {
+                    val target = getGenericInstanceOrNull(Key.get(it.type), false) as? T
                     if (target != null) {
                         return target
                     }
@@ -204,9 +205,9 @@ internal object ULTInternalInjector {
 
     fun <T : Any> getGenericInstance(clazz: Class<T>, assignable: Boolean): T {
         clazz.kotlin.companionObjectInstance?.let {
-            if (it is TypeLiteralAble) {
-                if (it.typeLiteral != null) {
-                    return injector.getGenericInstance(Key.get(it.typeLiteral), assignable) as T
+            if (it is TypeStrict) {
+                if (it.type != null) {
+                    return injector.getGenericInstance(Key.get(it.type), assignable) as T
                 } else {
                     throw NullPointerException("${clazz.name} is TypeLiteralAble but typeLiteral is null")
                 }
@@ -219,11 +220,11 @@ internal object ULTInternalInjector {
     fun <T : Any> getGenericInstanceOrNull(clazz: Class<T>, assignable: Boolean): T? {
         try {
             clazz.kotlin.companionObjectInstance?.let {
-                if (it is TypeLiteralAble) {
-                    if (it.typeLiteral != null) {
-                        logger.info("type name=${it.typeLiteral!!.type.typeName}")
-                        logger.info("key=${Key.get(it.typeLiteral)}")
-                        return injector.getGenericInstance(Key.get(it.typeLiteral), assignable) as? T?
+                if (it is TypeStrict) {
+                    if (it.type != null) {
+                        logger.info("type name=${it.type!!.type.typeName}")
+                        logger.info("key=${Key.get(it.type)}")
+                        return injector.getGenericInstance(Key.get(it.type), assignable) as? T?
                     }
                 }
             }

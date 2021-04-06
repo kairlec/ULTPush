@@ -1,7 +1,6 @@
 package com.kairlec.ultpush.core.receiver
 
 import com.kairlec.ultpush.ULTAbstractDepend
-import com.kairlec.ultpush.bind.TypeLiteralAble
 import com.kairlec.ultpush.bind.ULTInterface
 import com.kairlec.ultpush.core.Authenticate
 import com.kairlec.ultpush.core.Filter

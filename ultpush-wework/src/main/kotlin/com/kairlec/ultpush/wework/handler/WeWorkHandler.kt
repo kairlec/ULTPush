@@ -1,7 +1,7 @@
 package com.kairlec.ultpush.wework.handler
 
 import com.google.inject.TypeLiteral
-import com.kairlec.ultpush.bind.TypeLiteralAble
+import com.kairlec.ultpush.bind.TypeStrict
 import com.kairlec.ultpush.bind.ULTImpl
 import com.kairlec.ultpush.core.handler.EmptyMessageHandler
 import com.kairlec.ultpush.core.handler.MessageHandler
@@ -16,7 +16,7 @@ class WeWorkHandler : EmptyMessageHandler<WeWorkMessage>() {
         return object : TypeLiteral<Pusher<WeWorkMessage>>() {}
     }
 
-    companion object : TypeLiteralAble {
-        override val typeLiteral = object : TypeLiteral<MessageHandler<WeWorkMessage, WeWorkMessage>>() {}
+    companion object : TypeStrict {
+        override val type = object : TypeLiteral<MessageHandler<WeWorkMessage, WeWorkMessage>>() {}
     }
 }

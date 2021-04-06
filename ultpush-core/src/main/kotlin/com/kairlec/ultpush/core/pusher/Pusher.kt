@@ -1,7 +1,5 @@
 package com.kairlec.ultpush.core.pusher
 
-import com.google.inject.TypeLiteral
-import com.kairlec.ultpush.bind.TypeLiteralAble
 import com.kairlec.ultpush.bind.ULTInterface
 import com.kairlec.ultpush.core.Authenticate
 import com.kairlec.ultpush.core.Filter

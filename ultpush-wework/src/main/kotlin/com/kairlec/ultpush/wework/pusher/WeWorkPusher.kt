@@ -2,19 +2,16 @@ package com.kairlec.ultpush.wework.pusher
 
 import com.google.inject.Inject
 import com.google.inject.TypeLiteral
-import com.google.inject.name.Named
-import com.kairlec.ultpush.bind.TypeLiteralAble
+import com.kairlec.ultpush.bind.TypeStrict
 import com.kairlec.ultpush.bind.ULTImpl
 import com.kairlec.ultpush.component.lifecycle.ULTInit
 import com.kairlec.ultpush.component.lifecycle.ULTLoad
-import com.kairlec.ultpush.component.lifecycle.ULTRun
 import com.kairlec.ultpush.configuration.Config
 import com.kairlec.ultpush.configuration.Configuration
 import com.kairlec.ultpush.core.AuthenticateStatus
 import com.kairlec.ultpush.core.AuthenticateSuccess
 import com.kairlec.ultpush.core.pusher.Pusher
 import com.kairlec.ultpush.core.pusher.PusherMsg
-import com.kairlec.ultpush.user.UserHelper
 import com.kairlec.ultpush.wework.WeWorkApplicationHelperCreator
 import com.kairlec.ultpush.wework.WeWorkEnterpriseHelperCreator
 import com.kairlec.ultpush.wework.message.*
@@ -26,8 +23,8 @@ import org.slf4j.LoggerFactory
 class WeWorkPusher @Inject constructor(
     private val configuration: Configuration
 ) : Pusher<WeWorkMessage>() {
-    companion object : TypeLiteralAble {
-        override val typeLiteral = object : TypeLiteral<Pusher<WeWorkMessage>>() {}
+    companion object : TypeStrict {
+        override val type = object : TypeLiteral<Pusher<WeWorkMessage>>() {}
     }
 
     private val logger = LoggerFactory.getLogger(javaClass)

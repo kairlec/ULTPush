@@ -12,7 +12,6 @@ dependencies {
     api(kotlin("reflect"))
     api("org.jetbrains.kotlinx", "kotlinx-coroutines-core", Versions.kotlinCoroutines)
     api(project(":ultpush-bind"))
-    implementation("com.fasterxml.jackson.dataformat", "jackson-dataformat-yaml", Versions.jackson)
     testImplementation("org.slf4j:slf4j-simple:${Versions.slf4j}")
 }
 
