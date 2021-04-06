@@ -4,13 +4,20 @@ import com.kairlec.ultpush.bind.ULTInterface
 
 @ULTInterface(0)
 interface Configuration {
-    fun loadYaml(
+    fun load(
         name: String,
-        sub: String? = null,
         cached: Boolean = true,
-        base: Config? = null,
-        event: Config.() -> Unit = {}
+        base: Config? = null
     ): Config?
 
-    fun <T> loadYaml(name: String, clazz: Class<T>, base: T? = null, event: T.() -> Unit = {}): T?
+    fun load(
+        name: String,
+        cached: Boolean = true,
+        base: Config? = null,
+        event: Config.() -> Unit
+    )
+
+    fun <T> load(name: String, clazz: Class<T>, base: T? = null, event: T.() -> Unit)
+
+    fun <T> load(name: String, clazz: Class<T>, base: T? = null): T?
 }

@@ -9,7 +9,6 @@ import com.kairlec.ultpush.configuration.Configuration
 import io.javalin.Javalin
 import org.slf4j.LoggerFactory
 import java.lang.Exception
-import java.lang.RuntimeException
 
 @ULTImpl("JavalinHttpService")
 class JavalinHttpService @Inject constructor(
@@ -23,7 +22,7 @@ class JavalinHttpService @Inject constructor(
 
     @ULTLoad
     fun load() {
-        val config = configuration.loadYaml("javalin")
+        val config = configuration.load("javalin")
         if (config != null) {
             this.config = config
         }

@@ -10,6 +10,8 @@ dependencies {
     api(project(":ultpush-configuration"))
     api(project(":ultpush-bind"))
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${Versions.jackson}")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${Versions.jackson}")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${Versions.jackson}")
 }
 
 tasks.withType<Jar> {

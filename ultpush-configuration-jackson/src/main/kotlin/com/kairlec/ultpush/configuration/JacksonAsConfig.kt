@@ -1,18 +1,17 @@
 package com.kairlec.ultpush.configuration
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.JsonNodeType
-import com.kairlec.ultpush.configuration.JacksonConfiguration.Companion.mapper
 
-
-class JacksonAsConfig(internal val node: JsonNode) : Config {
+class JacksonAsConfig(internal val node: JsonNode, private val fromMapper: ObjectMapper) : Config {
     override fun getChild(name: String): Config? {
-        return node[name]?.let { JacksonAsConfig(it) }
+        return node[name]?.let { JacksonAsConfig(it, fromMapper) }
     }
 
     override fun getChild(index: Int): Config? {
-        return node[index]?.let { JacksonAsConfig(it) }
+        return node[index]?.let { JacksonAsConfig(it, fromMapper) }
     }
 
     override fun <T> get(index: Int, event: Config.() -> T): T? {
@@ -65,19 +64,19 @@ class JacksonAsConfig(internal val node: JsonNode) : Config {
         }
 
     override fun <T> getData(clazz: Class<T>): T {
-        return mapper.convertValue(node, clazz)
+        return fromMapper.convertValue(node, clazz)
     }
 
     override val arrayValue: Iterable<Config>?
         get() = if (node.isArray) {
-            (node as ArrayNode).map { JacksonAsConfig(it) }
+            (node as ArrayNode).map { JacksonAsConfig(it, fromMapper) }
         } else {
             null
         }
 
     override val objectValue: Config?
         get() = if (node.isObject) {
-            JacksonAsConfig(node)
+            JacksonAsConfig(node, fromMapper)
         } else {
             null
         }
