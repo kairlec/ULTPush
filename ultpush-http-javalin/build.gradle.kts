@@ -13,16 +13,6 @@ dependencies {
     testCompileOnly("org.junit.jupiter:junit-jupiter-api:${com.kairlec.ultpush.gradle.Versions.junit}")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:${com.kairlec.ultpush.gradle.Versions.junit}")
 }
-repositories {
-    mavenLocal()
-    maven("https://maven.aliyun.com/repository/public/")
-    maven("https://maven.aliyun.com/repository/google/")
-    maven("https://maven.aliyun.com/repository/jcenter/")
-    maven("https://maven.aliyun.com/repository/gradle-plugin/")
-    mavenCentral()
-    jcenter()
-}
-
 tasks.withType<Test> {
     useJUnitPlatform()
     workingDir = rootDir

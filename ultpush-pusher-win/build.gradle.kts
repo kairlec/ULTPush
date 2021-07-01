@@ -6,15 +6,6 @@ dependencies {
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
 }
-repositories {
-    mavenLocal()
-    maven("https://maven.aliyun.com/repository/public/")
-    maven("https://maven.aliyun.com/repository/google/")
-    maven("https://maven.aliyun.com/repository/jcenter/")
-    maven("https://maven.aliyun.com/repository/gradle-plugin/")
-    mavenCentral()
-    jcenter()
-}
 //tasks.withType<Jar> {
 //    from(configurations.compileClasspath.get().filter { it.exists() }.map {
 //        println(if (it.isDirectory) it else zipTree(it))

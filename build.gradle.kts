@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import com.kairlec.ultpush.gradle.Versions
 
 plugins {
     kotlin("jvm") version com.kairlec.ultpush.gradle.Versions.kotlin
@@ -52,24 +53,22 @@ subprojects {
 
     repositories {
         mavenLocal()
+        mavenCentral()
         maven("https://maven.aliyun.com/repository/public/")
         maven("https://maven.aliyun.com/repository/google/")
         maven("https://maven.aliyun.com/repository/jcenter/")
         maven("https://maven.aliyun.com/repository/gradle-plugin/")
-        mavenCentral()
-        jcenter()
     }
 }
 
 
 repositories {
     mavenLocal()
+    mavenCentral()
     maven("https://maven.aliyun.com/repository/public/")
     maven("https://maven.aliyun.com/repository/google/")
     maven("https://maven.aliyun.com/repository/jcenter/")
     maven("https://maven.aliyun.com/repository/gradle-plugin/")
-    mavenCentral()
-    jcenter()
 }
 
 tasks.forEach {
