@@ -1,7 +1,5 @@
 package com.kairlec.ultpush.http
 
-import javax.servlet.http.HttpServletRequest
-
 enum class HttpMethod {
     GET,
     POST,
@@ -26,6 +24,3 @@ enum class HttpMethod {
         }
     }
 }
-
-internal val HttpServletRequest.ultMethod: HttpMethod
-    get() = HttpMethod.parse(this.method)

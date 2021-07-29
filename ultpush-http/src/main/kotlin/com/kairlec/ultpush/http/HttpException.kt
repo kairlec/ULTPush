@@ -2,23 +2,23 @@ package com.kairlec.ultpush.http
 
 import java.lang.Exception
 
-sealed class HttpException : Exception {
-    constructor() : super()
-
-    constructor(
-        message: String, cause: Throwable,
-        enableSuppression: Boolean,
-        writableStackTrace: Boolean
-    ) : super(message, cause, enableSuppression, writableStackTrace)
-
-    constructor(cause: Throwable) : super(cause)
-
-    constructor(message: String, cause: Throwable) : super(message, cause)
-
-    constructor(message: String) : super(message)
+sealed class HttpException(message: String? = null, cause: Throwable? = null) : Exception(message, cause) {
 }
+
+sealed class ResponseException private constructor(
+    val statusCode: HttpStatusCode,
+    message: String? = null,
+    cause: Throwable? = null,
+) : HttpException(message, cause)
 
 class MethodNotSupportException(val method: String, override val message: String = "Method $method not support") :
     HttpException(message)
 
-class HttpResponseFinishedException(val statusCode: Int, override val message: String? = null) : Exception(message)
+class HttpResponseFinishedException(statusCode: HttpStatusCode, override val message: String? = null) :
+    ResponseException(statusCode, message, null)
+
+/**
+ * 错误的ContentType格式
+ * @param value ContentType值
+ */
+class BadContentTypeFormatException(value: String) : HttpException("Bad Content-Type format: $value")

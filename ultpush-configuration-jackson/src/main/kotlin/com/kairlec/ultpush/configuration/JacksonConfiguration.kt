@@ -4,14 +4,15 @@ import com.kairlec.ultpush.bind.ULTImpl
 
 @ULTImpl("JacksonConfiguration")
 class JacksonConfiguration : Configuration {
-    override fun <T> load(name: String, clazz: Class<T>, base: T?): T? {
-        return Loader.load(Loader.Yaml.mapper, name, clazz, base, *Loader.Yaml.suffix)
-            ?: Loader.load(Loader.Json.mapper, name, clazz, base, *Loader.Json.suffix)
-            ?: Loader.load(Loader.Properties.mapper, name, clazz, base, *Loader.Properties.suffix)
+
+    override fun <T> load(name: String, clazz: Class<T>): T? {
+        return Loader.load(Loader.Yaml.mapper, name, clazz, null, *Loader.Yaml.suffix)
+            ?: Loader.load(Loader.Json.mapper, name, clazz, null, *Loader.Json.suffix)
+            ?: Loader.load(Loader.Properties.mapper, name, clazz, null, *Loader.Properties.suffix)
     }
 
-    override fun <T> load(name: String, clazz: Class<T>, base: T?, event: T.() -> Unit) {
-        load(name, clazz, base)?.apply(event)
+    override fun <T> load(name: String, clazz: Class<T>, event: T.() -> Unit) {
+        load(name, clazz)?.apply(event)
     }
 
     override fun load(

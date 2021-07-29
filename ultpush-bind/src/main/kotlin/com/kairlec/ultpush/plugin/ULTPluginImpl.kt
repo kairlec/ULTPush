@@ -11,10 +11,10 @@ import com.kairlec.ultpush.component.LifecycleException
 import com.kairlec.ultpush.component.MultiLifecycleFunctionException
 import com.kairlec.ultpush.component.RunDelegate
 import com.kairlec.ultpush.component.lifecycle.*
-import com.kairlec.ultpush.util.Event
+import com.kairlec.ultpush.util.EventImpl
 import com.kairlec.ultpush.util.EventDelegate
+import com.kairlec.ultpush.util.ReadOnlyEvent
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -51,7 +51,7 @@ class ULTPluginImpl(
         private set(value) {
             field = value
             GlobalScope.launch {
-                statusChangeEvent(value)
+                _statusChangeEvent(value)
             }
         }
 
@@ -122,13 +122,15 @@ class ULTPluginImpl(
         if (this.status == status) {
             ok()
         } else {
-            statusChangeEvent.plusAssign(listen)
+            _statusChangeEvent.plusAssign(listen)
             //TODO Error on parse asm tree(Bug on Kotlin@1.4.31)
             //statusChangeEvent += listen
         }
     }
 
-    val statusChangeEvent = Event<ULTPluginImplStatus>()
+    private val _statusChangeEvent = EventImpl<ULTPluginImplStatus>()
+    val statusChangeEvent: ReadOnlyEvent<ULTPluginImplStatus>
+        get() = _statusChangeEvent
 
     init {
         currentFunctionName = "constructor"

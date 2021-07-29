@@ -10,6 +10,7 @@ import com.kairlec.ultpush.component.LifecycleException
 import com.kairlec.ultpush.getULTPluginImpl
 import com.kairlec.ultpush.plugin.ULTPluginImpl
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.runBlocking
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.lang.NullPointerException
@@ -40,11 +41,17 @@ object ULTInjector {
             when (it) {
                 ULTPluginImpl.ULTPluginImplStatus.FAILED -> {
                     logger.info("[$name][${clazz.name}]waited failed")
-                    channel.send(false)
+                    // TODO
+                    runBlocking {
+                        channel.send(false)
+                    }
                 }
                 ULTPluginImpl.ULTPluginImplStatus.RUNNING -> {
                     logger.info("[$name][${clazz.name}]waited running")
-                    channel.send(true)
+                    // TODO
+                    runBlocking {
+                        channel.send(true)
+                    }
                 }
                 else -> {
                 }
@@ -71,9 +78,15 @@ object ULTInjector {
             channel.send(true)
         }) {
             if (it == ULTPluginImpl.ULTPluginImplStatus.RUNNING) {
-                channel.send(true)
+                // TODO
+                runBlocking {
+                    channel.send(true)
+                }
             } else {
-                channel.send(false)
+                // TODO
+                runBlocking {
+                    channel.send(false)
+                }
             }
         }
         val ok = channel.receive()

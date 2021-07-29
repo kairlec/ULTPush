@@ -4,14 +4,22 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.JsonNodeType
+import java.lang.UnsupportedOperationException
 
-class JacksonAsConfig(internal val node: JsonNode, private val fromMapper: ObjectMapper) : Config {
+open class JacksonAsConfig @Deprecated(
+    "Should use factory",
+    ReplaceWith(
+        "JacksonConfigFactory.create(node, fromMapper)",
+        "com.kairlec.ultpush.configuration.JacksonConfigFactory"
+    ),
+    DeprecationLevel.ERROR
+) internal constructor(internal var node: JsonNode, internal val fromMapper: ObjectMapper) : MutableConfig {
     override fun getChild(name: String): Config? {
-        return node[name]?.let { JacksonAsConfig(it, fromMapper) }
+        return node[name]?.let { JacksonConfigFactory.create(it, fromMapper) }
     }
 
     override fun getChild(index: Int): Config? {
-        return node[index]?.let { JacksonAsConfig(it, fromMapper) }
+        return node[index]?.let { JacksonConfigFactory.create(it, fromMapper) }
     }
 
     override fun <T> get(index: Int, event: Config.() -> T): T? {
@@ -69,17 +77,18 @@ class JacksonAsConfig(internal val node: JsonNode, private val fromMapper: Objec
 
     override val arrayValue: Iterable<Config>?
         get() = if (node.isArray) {
-            (node as ArrayNode).map { JacksonAsConfig(it, fromMapper) }
+            (node as ArrayNode).map { JacksonConfigFactory.create(it, fromMapper) }
         } else {
             null
         }
 
     override val objectValue: Config?
         get() = if (node.isObject) {
-            JacksonAsConfig(node, fromMapper)
+            this
         } else {
             null
         }
+
     override val stringValue: String?
         get() = if (node.isTextual) {
             node.textValue()
@@ -117,5 +126,21 @@ class JacksonAsConfig(internal val node: JsonNode, private val fromMapper: Objec
 
     override fun <T> asString(event: String.() -> T) {
         event(asString())
+    }
+
+    override fun update(target: Config) {
+        when (type) {
+            ConfigType.OBJECT -> throw UnsupportedOperationException("Object is IterableConfig")
+            ConfigType.ARRAY -> throw UnsupportedOperationException("Object is IterableConfig")
+            ConfigType.BINARY -> TODO()
+            ConfigType.STRING -> TODO()
+            ConfigType.BOOLEAN -> TODO()
+            ConfigType.INTEGER -> TODO()
+            ConfigType.FLOAT -> TODO()
+            ConfigType.NULL -> TODO()
+            ConfigType.DATE -> TODO()
+            ConfigType.DATETIME -> TODO()
+            ConfigType.UNKNOWN -> TODO()
+        }
     }
 }

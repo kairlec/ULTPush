@@ -4,14 +4,8 @@ import com.kairlec.ultpush.http.HttpCommon.HTML_CT
 import com.kairlec.ultpush.http.HttpCommon.LOCATION_HD
 import com.kairlec.ultpush.http.HttpCommon.UA_HD
 import java.io.InputStream
-import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.util.*
-import javax.servlet.http.Cookie
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
-import javax.servlet.http.HttpServletResponse.SC_MOVED_TEMPORARILY
-import javax.servlet.http.HttpSession
 
 interface HttpContext {
     var scope: HttpScope

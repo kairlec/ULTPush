@@ -4,17 +4,17 @@ plugins {
     kotlin("jvm") apply true
 }
 
+group = "com.kairlec"
+version = "2.0-dev1"
+
+
 dependencies {
     api(kotlin("stdlib"))
     api(kotlin("reflect"))
     api(project(":ultpush-configuration"))
     api(project(":ultpush-bind"))
-    implementation("com.fasterxml.jackson.core:jackson-databind:${Versions.jackson}")
-    implementation("com.fasterxml.jackson.core:jackson-annotations:${Versions.jackson}")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${Versions.jackson}")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-properties:${Versions.jackson}")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:${Versions.jackson}")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:${Versions.jackson}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.kotlinxSerialization}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-properties:${Versions.kotlinxSerialization}")
 }
 
 tasks.withType<Jar> {

@@ -17,7 +17,7 @@ interface Configuration {
         event: Config.() -> Unit
     )
 
-    fun <T> load(name: String, clazz: Class<T>, base: T? = null, event: T.() -> Unit)
+    fun <T> load(name: String, clazz: Class<T>, event: T.() -> Unit)
 
-    fun <T> load(name: String, clazz: Class<T>, base: T? = null): T?
+    fun <T> load(name: String, clazz: Class<T>): T?
 }

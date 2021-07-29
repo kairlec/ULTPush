@@ -122,12 +122,12 @@ object Loader {
         }
         return if (cached) {
             configMap[name] ?: let {
-                tryLoadUpdate(mapper, name, base?.node, *suffix)?.let { JacksonAsConfig(it, mapper) }?.apply {
+                tryLoadUpdate(mapper, name, base?.node, *suffix)?.let { JacksonConfigFactory.create(it, mapper) }?.apply {
                     configMap[name] = this
                 }
             }
         } else {
-            tryLoadUpdate(mapper, name, base?.node, *suffix)?.let { JacksonAsConfig(it, mapper) }?.apply {
+            tryLoadUpdate(mapper, name, base?.node, *suffix)?.let { JacksonConfigFactory.create(it, mapper) }?.apply {
                 configMap[name] = this
             }
         }

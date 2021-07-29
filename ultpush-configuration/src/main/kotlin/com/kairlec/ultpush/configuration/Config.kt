@@ -39,4 +39,5 @@ interface Config {
 
     fun asString(): String
     fun <T> asString(event: String.() -> T)
+
 }

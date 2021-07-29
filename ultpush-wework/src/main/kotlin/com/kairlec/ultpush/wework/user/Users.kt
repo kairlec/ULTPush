@@ -5,7 +5,6 @@ import com.google.inject.Inject
 import com.kairlec.ultpush.bind.ULTImpl
 import com.kairlec.ultpush.component.lifecycle.ULTInit
 import com.kairlec.ultpush.component.lifecycle.ULTLoad
-import com.kairlec.ultpush.component.lifecycle.ULTRun
 import com.kairlec.ultpush.configuration.Config
 import com.kairlec.ultpush.configuration.Configuration
 import com.kairlec.ultpush.user.IDUser
